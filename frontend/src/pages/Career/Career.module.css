@@ -1,0 +1,634 @@
+/* Career Intelligence Page — Premium dark glassmorphism design */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+.page {
+    padding: 32px 28px;
+    max-width: 1280px;
+    margin: 0 auto;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+}
+
+/* ── Loading State ─────────────────────────────────────────────────────── */
+.loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    height: 60vh;
+    color: var(--text-3, #9A9A9A);
+    font-size: 0.875rem;
+}
+
+.loadingPulse {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF7A00, #FF9F40);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(0.85);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 24px;
+}
+
+.headerLeft {
+    flex: 1;
+}
+
+.headerBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 122, 0, 0.12);
+    color: #FF7A00;
+    border: 1px solid rgba(255, 122, 0, 0.24);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.headerTitle {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-1, #1A1A1A);
+    line-height: 1.2;
+    margin: 0 0 6px;
+    letter-spacing: -0.03em;
+}
+
+.headerSub {
+    font-size: 0.85rem;
+    color: var(--text-3, #9A9A9A);
+    margin: 0;
+}
+
+.headerRight {
+    flex-shrink: 0;
+}
+
+/* ── Gauge ─────────────────────────────────────────────────────────────── */
+.gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.gaugeSvg {
+    width: 120px;
+    height: 120px;
+}
+
+.gaugeLabel {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+/* ── Eligibility Banner ────────────────────────────────────────────────── */
+.eligibilityBanner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+    font-weight: 500;
+    border: 1px solid transparent;
+}
+
+.bannerSuccess {
+    background: rgba(16, 185, 129, 0.08);
+    color: #10B981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.bannerInfo {
+    background: rgba(59, 130, 246, 0.08);
+    color: #3B82F6;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.bannerRisk {
+    background: rgba(239, 68, 68, 0.08);
+    color: #EF4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* ── Grid Layout ───────────────────────────────────────────────────────── */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+}
+
+.colLeft,
+.colRight {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────── */
+.card {
+    background: white;
+    border: 1px solid #EFEAE3;
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    animation: fadeUp 0.5s ease both;
+}
+
+.card:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.cardTitle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-1, #1A1A1A);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.cardBadge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-3, #9A9A9A);
+    background: var(--surface-2, #F5F1EB);
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ── Domain Bars ───────────────────────────────────────────────────────── */
+.domainList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.domainBar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.domainBarHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.domainBarName {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-1, #1A1A1A);
+}
+
+.domainBarScore {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.domainBarTrack {
+    height: 6px;
+    background: var(--surface-2, #F5F1EB);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.domainBarFill {
+    height: 100%;
+    border-radius: 999px;
+    width: 0%;
+}
+
+.domainBarTop .domainBarFill {
+    height: 8px;
+}
+
+.domainBarTop .domainBarTrack {
+    height: 8px;
+}
+
+/* ── Strength Subjects ─────────────────────────────────────────────────── */
+.strengthSubjects {
+    padding-top: 14px;
+    border-top: 1px solid #EFEAE3;
+}
+
+.strengthLabel {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-3, #9A9A9A);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.strengthPills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.strengthPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface-2, #F5F1EB);
+    color: var(--text-2, #4A4A4A);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.gradeTag {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10B981;
+    border-radius: 6px;
+    padding: 0px 5px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+/* ── Skills Grid ───────────────────────────────────────────────────────── */
+.skillGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.skillChip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2, #F5F1EB);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-1, #1A1A1A);
+    animation: fadeUp 0.4s ease both;
+    transition: background 0.15s ease;
+}
+
+.skillChip:hover {
+    background: #EDE8E0;
+}
+
+.skillNum {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-3, #9A9A9A);
+    font-family: 'Courier New', monospace;
+}
+
+/* ── Action List ───────────────────────────────────────────────────────── */
+.actionList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.actionItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.actionItem:hover {
+    background: var(--surface-2, #F5F1EB);
+}
+
+.actionItemActive {
+    background: rgba(255, 122, 0, 0.06);
+    border-color: rgba(255, 122, 0, 0.2);
+}
+
+.actionNum {
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text-3, #9A9A9A);
+}
+
+.actionText {
+    font-size: 0.8rem;
+    color: var(--text-1, #1A1A1A);
+    flex: 1;
+    line-height: 1.4;
+}
+
+.actionArrow {
+    color: var(--text-3, #9A9A9A);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.actionItem:hover .actionArrow {
+    opacity: 1;
+}
+
+/* ── Salary Card ───────────────────────────────────────────────────────── */
+.salaryCard {
+    background: linear-gradient(135deg, #0F0F14 0%, #1A1A24 100%);
+    border-color: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.salaryCard .cardTitle {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.salaryGlow {
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    opacity: 0.12;
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+.salaryRange {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 8px 0 16px;
+}
+
+.salaryBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.salaryLabel {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.salaryValue {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.salarySep {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.salaryNote {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.35);
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.salaryTier {
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+}
+
+/* ── Company List ──────────────────────────────────────────────────────── */
+.companyList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.companyRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    transition: background 0.15s ease;
+    cursor: pointer;
+    animation: fadeUp 0.4s ease both;
+}
+
+.companyRow:hover {
+    background: var(--surface-2, #F5F1EB);
+}
+
+.companyAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.companyName {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-1, #1A1A1A);
+    flex: 1;
+}
+
+.companyArrow {
+    color: var(--text-3, #9A9A9A);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.companyRow:hover .companyArrow {
+    opacity: 1;
+}
+
+/* ── Certifications ────────────────────────────────────────────────────── */
+.certSection {
+    margin-bottom: 14px;
+}
+
+.certSection:last-child {
+    margin-bottom: 0;
+}
+
+.certDomain {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #FF7A00;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.certRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 0.8rem;
+    color: var(--text-1, #1A1A1A);
+    line-height: 1.4;
+}
+
+.certDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+}
+
+/* ── Portal Grid ───────────────────────────────────────────────────────── */
+.portalGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.portalChip {
+    padding: 6px 14px;
+    background: var(--surface-2, #F5F1EB);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-2, #4A4A4A);
+    transition: background 0.15s ease;
+    cursor: pointer;
+}
+
+.portalChip:hover {
+    background: #EDE8E0;
+}
+
+/* ── Chat CTA ──────────────────────────────────────────────────────────── */
+.chatCta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: linear-gradient(135deg, #FF7A00, #FF9F40);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 4px 16px rgba(255, 122, 0, 0.25);
+}
+
+.chatCta:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.chatCta svg:last-child {
+    margin-left: auto;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .colRight {
+        order: -1;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .skillGrid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,292 @@
+.page {
+    padding: var(--sp-5) var(--sp-6);
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+.heroCard {
+    padding: var(--sp-5);
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+    flex-wrap: wrap;
+}
+
+.heroLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    flex: 1;
+}
+
+.avatarLarge {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    border: 3px solid var(--accent);
+    flex-shrink: 0;
+}
+
+.heroName {
+    font-size: 1.625rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.heroSub {
+    color: var(--text-2);
+    font-size: 0.9rem;
+    margin-top: 3px;
+}
+
+.heroCollege {
+    color: var(--text-3);
+    font-size: 0.8125rem;
+    margin-top: 2px;
+}
+
+.heroCGPA {
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.heroCGPANum {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.heroCGPALabel {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    margin-top: 2px;
+}
+
+.heroCGPAProjected {
+    font-size: 0.8125rem;
+    color: var(--safe);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.statChips {
+    display: flex;
+    gap: var(--sp-2);
+    flex-wrap: wrap;
+}
+
+.statChip {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-lg);
+    padding: 10px var(--sp-3);
+    box-shadow: var(--shadow-card);
+}
+
+.statIcon {
+    font-size: 1.125rem;
+}
+
+.statText {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.statVal {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+}
+
+.statLabel {
+    font-size: 0.6875rem;
+    color: var(--text-3);
+}
+
+.journeyCard {
+    padding: var(--sp-4);
+}
+
+.cardTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--sp-3);
+}
+
+.sparkWrap {
+    height: 120px;
+}
+
+.semBadges {
+    display: flex;
+    gap: var(--sp-2);
+    margin-top: var(--sp-3);
+    flex-wrap: wrap;
+}
+
+.semBadge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.semLabel {
+    font-size: 0.6875rem;
+    color: var(--text-3);
+}
+
+.semGrade {
+    font-size: 0.875rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+}
+
+.bottomRow {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: var(--sp-4);
+}
+
+.subjectCard {
+    padding: var(--sp-4);
+}
+
+.tableWrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.table th {
+    padding: 8px 12px;
+    text-align: left;
+    color: var(--text-3);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.table td {
+    padding: 10px 12px;
+    color: var(--text-1);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.rowEven {
+    background: var(--surface-2);
+}
+
+.grade {
+    font-weight: 700;
+    font-family: var(--font-display);
+}
+
+.miniBloom {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.rightPanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+}
+
+.historyCard {
+    padding: var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+}
+
+.historyItem {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    font-size: 0.875rem;
+    color: var(--text-2);
+}
+
+.historyIcon {
+    width: 22px;
+    height: 22px;
+    background: var(--safe-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--safe);
+    flex-shrink: 0;
+}
+
+.emotionCard {
+    padding: var(--sp-4);
+}
+
+.emotionSub {
+    font-size: 0.8125rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-3);
+}
+
+.sentimentBar {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 56px;
+}
+
+.sentimentBlock {
+    width: 100%;
+    border-radius: 2px;
+    transition: height 400ms ease;
+    flex: 1;
+}
+
+@media (max-width: 900px) {
+    .bottomRow {
+        grid-template-columns: 1fr;
+    }
+
+    .page {
+        padding: var(--sp-4);
+    }
+
+    .heroCard {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .heroCGPA {
+        text-align: left;
+    }
+}

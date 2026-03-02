@@ -1,0 +1,814 @@
+/* ═══════════════════════════════════════════════════════════════
+   Chat Page — Phase 3 UI Overhaul
+   Structured agent cards · Live orchestration visualizer · Action chips
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+/* ── Context Sidebar ─────────────────────────────────────────── */
+.contextPanel {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border-light);
+    padding: 20px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+}
+
+.contextHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.contextAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #06b6d4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.contextName {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1);
+    line-height: 1.2;
+}
+
+.contextSub {
+    font-size: 0.7rem;
+    color: var(--text-3);
+}
+
+/* Context stat pills */
+.contextStats {
+    display: flex;
+    gap: 6px;
+}
+
+.contextStat {
+    flex: 1;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid var(--border-light);
+    transition: border-color 0.2s;
+}
+
+.statHighlight {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+.statDanger {
+    border-color: var(--risk);
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.statVal {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    color: var(--text-1);
+}
+
+.statLabel {
+    font-size: 0.6rem;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+}
+
+/* Sidebar sections */
+.sideSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sideSectionTitle {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Subject rows */
+.subjectRow {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.subjectMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.subjectName {
+    font-size: 0.75rem;
+    color: var(--text-2);
+}
+
+.subjectStatus {
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 99px;
+    text-transform: uppercase;
+}
+
+.risk {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--risk);
+}
+
+.watch {
+    background: rgba(245, 158, 11, 0.12);
+    color: var(--watch);
+}
+
+.safe {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--safe);
+}
+
+/* Attendance bar */
+.attBar {
+    height: 3px;
+    background: var(--surface-2);
+    border-radius: 99px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.attFill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.6s ease;
+}
+
+.attFill.risk {
+    background: var(--risk);
+}
+
+.attFill.watch {
+    background: var(--watch);
+}
+
+.attFill.safe {
+    background: var(--safe);
+}
+
+.attPct {
+    font-size: 0.65rem;
+    color: var(--text-3);
+    text-align: right;
+}
+
+/* Briefing summary */
+.briefSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.briefItem {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.briefCritical {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.briefWarning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.briefInfoItem {
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--accent);
+}
+
+/* Agent pills */
+.agentPills {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.agentPill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 0;
+}
+
+.agentPillDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.agentPillName {
+    font-size: 0.75rem;
+    color: var(--text-2);
+}
+
+/* ── Chat area ───────────────────────────────────────────────── */
+.chatArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Briefing strip ──────────────────────────────────────────── */
+.briefingStrip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border-light);
+    animation: slideDown 300ms ease both;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.briefingCritical {
+    background: rgba(239, 68, 68, 0.08);
+    border-left: 3px solid #ef4444;
+}
+
+.briefingWarning {
+    background: rgba(245, 158, 11, 0.08);
+    border-left: 3px solid #f59e0b;
+}
+
+.briefingInfo {
+    background: rgba(99, 102, 241, 0.06);
+    border-left: 3px solid var(--accent);
+}
+
+.briefingIcon {
+    font-size: 1rem;
+}
+
+.briefingText {
+    flex: 1;
+    font-size: 0.8125rem;
+    color: var(--text-1);
+    line-height: 1.4;
+}
+
+.briefingDismiss {
+    background: none;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+
+.briefingDismiss:hover {
+    color: var(--text-1);
+}
+
+/* ── Messages area ───────────────────────────────────────────── */
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scrollbar-width: thin;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 40px 0;
+    animation: fadeUp 400ms ease both;
+}
+
+.emptyAvatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #06b6d4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.5rem;
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.12);
+}
+
+.emptyTitle {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--text-1);
+    text-align: center;
+}
+
+.emptySub {
+    font-size: 0.875rem;
+    color: var(--text-3);
+    text-align: center;
+}
+
+.quickGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 620px;
+}
+
+.quickCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    text-align: center;
+}
+
+.quickCard:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+}
+
+.quickIcon {
+    font-size: 1.25rem;
+}
+
+.quickText {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    line-height: 1.3;
+}
+
+/* ── User bubble ─────────────────────────────────────────────── */
+.msgRowUser {
+    display: flex;
+    justify-content: flex-end;
+    animation: fadeUp 250ms ease both;
+}
+
+.userBubble {
+    max-width: 520px;
+    padding: 12px 18px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 18px 4px 18px 18px;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
+}
+
+/* ── Agent response card ─────────────────────────────────────── */
+.msgRowAgent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    animation: fadeUp 300ms ease both;
+    max-width: 720px;
+}
+
+/* Agent badge header */
+.agentBadge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+}
+
+.agentBadgeIcon {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--agent-c) 12%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--agent-c);
+}
+
+.agentBadgeLabel {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--agent-c);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.agentBadgeDot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--text-3);
+}
+
+.agentBadgeStatus {
+    font-size: 0.65rem;
+    color: var(--text-3);
+}
+
+/* Card body */
+.agentCard {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--agent-c);
+    border-radius: 4px 14px 14px 14px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 680px;
+}
+
+.cardContent {
+    color: var(--text-1);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+}
+
+.cardContent strong {
+    font-weight: 600;
+}
+
+.cardContent em {
+    font-style: italic;
+    opacity: 0.85;
+}
+
+.cardContent code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875em;
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.cardContent h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-1);
+}
+
+.cardContent h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-2);
+}
+
+.cardContent li {
+    margin-left: 18px;
+    margin-bottom: 3px;
+    list-style: disc;
+}
+
+.cardContent li.ordered {
+    list-style: decimal;
+}
+
+.cardContent p {
+    margin-bottom: 8px;
+}
+
+/* Citations */
+.citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-light);
+}
+
+.citation {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-size: 0.6875rem;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Action chips */
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: color-mix(in srgb, var(--agent-c) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--agent-c) 25%, transparent);
+    border-radius: 99px;
+    font-size: 0.75rem;
+    color: var(--agent-c);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    font-weight: 500;
+}
+
+.chip:hover {
+    background: color-mix(in srgb, var(--agent-c) 16%, transparent);
+    transform: translateY(-1px);
+}
+
+/* ── Orchestration Pipeline Visualizer ───────────────────────── */
+.pipeline {
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 280px;
+    animation: fadeUp 200ms ease both;
+}
+
+.pipelineHeader {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.pipelinePulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    animation: pulseBeat 1s ease-in-out infinite;
+}
+
+@keyframes pulseBeat {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.7);
+    }
+}
+
+.pipelineLabel {
+    font-size: 0.75rem;
+    color: var(--text-3);
+}
+
+.pipelineStages {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pipelineStage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.3;
+    transition: opacity 0.3s;
+}
+
+.pipelineActive {
+    opacity: 1;
+}
+
+.pipelineDone {
+    opacity: 0.6;
+}
+
+.pipelineDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-3);
+    flex-shrink: 0;
+    transition: background 0.3s;
+}
+
+.pipelineActive .pipelineDot {
+    background: var(--accent);
+    animation: pulseBeat 0.8s ease infinite;
+}
+
+.pipelineDone .pipelineDot {
+    background: var(--safe);
+}
+
+.pipelineStageName {
+    font-size: 0.75rem;
+    color: var(--text-2);
+}
+
+/* ── Input area ──────────────────────────────────────────────── */
+.inputArea {
+    padding: 16px 32px 20px;
+    border-top: 1px solid var(--border-light);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.inputBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-2);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inputBar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.inputBarBusy {
+    opacity: 0.7;
+    border-color: var(--border);
+}
+
+.input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 0.9375rem;
+    color: var(--text-1);
+    padding: 4px 0;
+}
+
+.input::placeholder {
+    color: var(--text-3);
+}
+
+.input:focus {
+    outline: none;
+}
+
+.input:disabled {
+    cursor: not-allowed;
+}
+
+.sendBtn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.sendBtn:hover:not(:disabled) {
+    background: var(--accent-hover, #4f46e5);
+    transform: scale(1.05);
+}
+
+.sendBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sendBtnBusy {
+    background: var(--surface-2);
+}
+
+.sendSpinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.inputHint {
+    font-size: 0.6875rem;
+    color: var(--text-3);
+    text-align: center;
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .contextPanel {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .messages {
+        padding: 16px;
+    }
+
+    .inputArea {
+        padding: 12px 16px;
+    }
+
+    .quickGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

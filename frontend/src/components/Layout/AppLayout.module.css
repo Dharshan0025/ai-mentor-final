@@ -1,0 +1,385 @@
+.layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: var(--sp-2) 0 var(--sp-3);
+}
+
+.logoIcon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: var(--r-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.logoText {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    color: var(--text-1);
+}
+
+.studentInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2);
+    background: var(--surface-2);
+    border-radius: var(--r-md);
+    border: 1px solid var(--border-light);
+}
+
+.avatarWrap {
+    flex-shrink: 0;
+}
+
+.avatarFallback {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.875rem;
+    border: 2px solid var(--accent);
+}
+
+.studentMeta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.studentName {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.studentSub {
+    font-size: 0.6875rem;
+    color: var(--text-3);
+}
+
+.cgpaChip {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--r-full);
+    flex-shrink: 0;
+    font-family: var(--font-display);
+}
+
+.divider {
+    margin: var(--sp-1) 0;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    color: var(--text-2);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+}
+
+.navItem:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+}
+
+.navItemActive {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.navItemActive .navIcon {
+    color: var(--accent);
+}
+
+.navIcon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.navLabel {
+    white-space: nowrap;
+}
+
+.sidebarFooter {
+    margin-top: auto;
+    padding-top: var(--sp-3);
+}
+
+.langToggle {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+}
+
+.langBtn {
+    flex: 1;
+    padding: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-2);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.langActive {
+    background: var(--surface);
+    color: var(--text-1);
+    font-weight: 600;
+    box-shadow: var(--shadow-card);
+}
+
+.logoutBtn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: var(--r-md);
+    border: none;
+    background: none;
+    color: var(--text-3);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+    font-family: inherit;
+}
+
+.logoutBtn:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #EF4444;
+}
+
+
+.main {
+    flex: 1;
+    margin-left: 240px;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        right: 0;
+        flex-direction: row;
+        padding: var(--sp-2) var(--sp-3);
+        border-right: none;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .logo,
+    .studentInfo,
+    .divider,
+    .sidebarFooter {
+        display: none;
+    }
+
+    .nav {
+        flex-direction: row;
+        flex: 1;
+        justify-content: space-around;
+    }
+
+    .navLabel {
+        display: none;
+    }
+
+    .navItem {
+        flex-direction: column;
+        padding: var(--sp-2);
+        gap: 4px;
+    }
+
+    .main {
+        margin-left: 0;
+        padding-bottom: 80px;
+    }
+}
+
+/* ── Alert Bell ─────────────────────────────────────────────────── */
+
+.alertBell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-2);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    transition: all 150ms ease;
+    font-family: inherit;
+}
+
+.alertBell:hover {
+    background: var(--surface);
+    color: var(--text-1);
+}
+
+.alertBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-left: auto;
+    animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.85;
+        transform: scale(1.08);
+    }
+}
+
+/* ── Alerts Panel ────────────────────────────────────────────────── */
+
+.alertsOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+}
+
+.alertsPanel {
+    position: fixed;
+    top: 0;
+    left: 240px;
+    width: 340px;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+    animation: slideInLeft 200ms ease;
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alertsPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.alertsList {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.alertItem {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 150ms ease;
+}
+
+.alertItem:hover {
+    filter: brightness(1.04);
+}

@@ -1,0 +1,474 @@
+.page {
+    padding: var(--sp-5) var(--sp-6);
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-5);
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    position: relative;
+}
+
+.header::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120%;
+    height: 200px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255, 122, 0, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.sub {
+    color: var(--text-2);
+    font-size: 0.9375rem;
+}
+
+.topRow {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr;
+    gap: var(--sp-4);
+}
+
+.chartCard,
+.projectedCard {
+    padding: var(--sp-4);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sp-3);
+}
+
+.cardTitle {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.legend {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-2);
+}
+
+.legendLine {
+    width: 24px;
+    height: 2.5px;
+    border-radius: 99px;
+    display: inline-block;
+}
+
+.chartWrap {
+    height: 200px;
+}
+
+.chartNote {
+    font-size: 0.8125rem;
+    color: var(--text-2);
+    margin-top: var(--sp-2);
+    text-align: center;
+}
+
+.bigCGPA {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin: var(--sp-3) 0 var(--sp-1);
+}
+
+.cgpaRange {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-3);
+}
+
+.cgpaInsights {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cgpaInsight {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+.insightVal {
+    font-weight: 600;
+    color: var(--text-1);
+}
+
+/* Risk map */
+.riskMapCard {
+    padding: var(--sp-4);
+}
+
+.riskMap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.riskRow {
+    border-radius: var(--r-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.riskRow:hover {
+    background: var(--surface-2);
+}
+
+.riskRowActive {
+    background: var(--surface-2);
+}
+
+.riskRowMain {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: 12px var(--sp-3);
+}
+
+.riskSubjectName {
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-width: 160px;
+}
+
+.riskBarWrap {
+    flex: 1;
+}
+
+.riskBarTrack {
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 99px;
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+
+.riskBarFill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.riskScore {
+    font-size: 0.875rem;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: right;
+}
+
+.riskDetail {
+    padding: 0 var(--sp-3) var(--sp-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+}
+
+.riskDetailItem {
+    font-size: 0.8125rem;
+    color: var(--text-2);
+}
+
+/* Simulator */
+.simulatorCard {
+    padding: var(--sp-5);
+}
+
+.simDesc {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    margin-bottom: var(--sp-4);
+}
+
+.sliders {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-5);
+}
+
+.sliderRow {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+}
+
+.sliderLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+}
+
+.sliderLabel strong {
+    color: var(--accent);
+}
+
+.slider {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.sliderTrackLabels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.675rem;
+    color: var(--text-3);
+    margin-top: -4px;
+}
+
+.sliderValActive {
+    color: var(--accent);
+    animation: pop 0.2s ease;
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ── Live CGPA Delta Card ────────────────────────────────────────────────── */
+.simDeltaCard {
+    background: var(--surface, #FAF8F5);
+    border: 1px solid var(--border-light, #EFEAE3);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+}
+
+.simDeltaLoading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-3);
+    font-size: 0.84rem;
+}
+
+.spinnerIcon {
+    color: var(--accent);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.simDeltaError {
+    font-size: 0.82rem;
+    color: var(--risk, #EF4444);
+}
+
+.simDeltaHint {
+    font-size: 0.82rem;
+    color: var(--text-3);
+    font-style: italic;
+    text-align: center;
+}
+
+.simDeltaRow {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.simDeltaBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.simDeltaLabel {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+}
+
+.simDeltaNum {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--text-1);
+    transition: color 0.3s ease;
+}
+
+.simDeltaArrow {
+    flex-shrink: 0;
+}
+
+.simDeltaBadge {
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-left: auto;
+    transition: all 0.3s ease;
+}
+
+.simDeltaPos {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+}
+
+.simDeltaNeg {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
+.simDeltaNeutral {
+    background: var(--surface-2);
+    color: var(--text-3);
+}
+
+.simRange {
+    font-size: 0.75rem;
+    color: var(--text-3);
+}
+
+/* ── Per-subject Diff Table ─────────────────────────────────────────────── */
+.simSubjectTable {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--border-light, #EFEAE3);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.simSubjectHeader {
+    display: grid;
+    grid-template-columns: 1fr 60px 60px 60px 60px;
+    padding: 10px 16px;
+    background: var(--surface-2, #F0EBE3);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-3);
+}
+
+.simSubjectRow {
+    display: grid;
+    grid-template-columns: 1fr 60px 60px 60px 60px;
+    padding: 12px 16px;
+    align-items: center;
+    border-top: 1px solid var(--border-light, #EFEAE3);
+    font-size: 0.84rem;
+    transition: background 0.15s ease;
+    animation: fadeUp 0.3s ease both;
+}
+
+.simSubjectRow:hover {
+    background: var(--surface, #FAF8F5);
+}
+
+.simRowImproved {
+    background: rgba(16, 185, 129, 0.03);
+}
+
+.simSubjectName {
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+.simSubjectGrade {
+    color: var(--text-2);
+    font-weight: 500;
+}
+
+.simSubjectBefore {
+    color: var(--text-3);
+}
+
+.simSubjectAfter {
+    font-weight: 600;
+}
+
+.simSubjectDelta {
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.deltaPos {
+    color: #10B981;
+}
+
+.deltaNeg {
+    color: #EF4444;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 900px) {
+    .topRow {
+        grid-template-columns: 1fr;
+    }
+
+    .page {
+        padding: var(--sp-4);
+    }
+
+    .simSubjectHeader,
+    .simSubjectRow {
+        grid-template-columns: 1fr 50px 50px 50px 50px;
+        font-size: 0.75rem;
+    }
+}

@@ -1,0 +1,149 @@
+/* ── Base primitives ──────────────────────────────────────────── */
+.line {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border-light) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+.circle {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border-light) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    animation: fadeIn 300ms ease both;
+}
+
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Dashboard Skeleton ──────────────────────────────────────── */
+.dashboardSkeleton {
+    padding: 24px 28px;
+    max-width: 1180px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.headerSkel {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px;
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-light);
+}
+
+.metricStripSkel {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.metricSkel {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-lg);
+    padding: 14px;
+}
+
+.row2Skel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.gridSkel {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .metricStripSkel { grid-template-columns: repeat(3, 1fr); }
+    .gridSkel { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Learning Skeleton ───────────────────────────────────────── */
+.learningSkeleton {
+    display: flex;
+    gap: 16px;
+    padding: 24px 28px;
+    min-height: 80vh;
+}
+
+.learnSidebar {
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.learnSubjectSkel {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: 12px;
+}
+
+.learnContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.topicGridSkel {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 8px;
+}
+
+/* ── Career Skeleton ─────────────────────────────────────────── */
+.careerSkeleton {
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.careerHeaderSkel {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-light);
+}
+
+.careerGridSkel {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+}
+
+.careerColSkel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}

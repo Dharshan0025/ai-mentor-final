@@ -1,0 +1,446 @@
+.page {
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+/* NAV */
+.nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(244, 241, 236, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.navInner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--sp-5);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.logoIcon {
+    width: 30px;
+    height: 30px;
+    background: var(--accent);
+    border-radius: var(--r-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.875rem;
+}
+
+.logoText {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.navLinks {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    margin: 0 auto;
+}
+
+.navLinks a {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    transition: color var(--transition-fast);
+}
+
+.navLinks a:hover {
+    color: var(--text-1);
+}
+
+.navActions {
+    flex-shrink: 0;
+}
+
+.langToggle {
+    font-size: 0.8125rem;
+    color: var(--text-2);
+    cursor: pointer;
+}
+
+.signInLink {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 1.5px solid var(--accent);
+    border-radius: var(--r-full);
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.signInLink:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+.heroBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    font-size: 0.9375rem;
+}
+
+
+/* HERO */
+.hero {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--sp-8) var(--sp-5) var(--sp-7);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-7);
+    align-items: center;
+    position: relative;
+}
+
+.heroGlow {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 60%;
+    background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(255, 122, 0, 0.10) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.heroContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+.heroPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    padding: 6px 14px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: var(--r-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.heroTitle {
+    font-size: 3.25rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-1);
+}
+
+.heroAccent {
+    color: var(--accent);
+}
+
+.heroSub {
+    font-size: 1.0625rem;
+    color: var(--text-2);
+    line-height: 1.6;
+    max-width: 42ch;
+}
+
+/* Login form */
+.loginForm {
+    background: var(--surface);
+    border-radius: var(--r-xl);
+    padding: var(--sp-5);
+    box-shadow: var(--shadow-float);
+    border: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+    margin-top: var(--sp-2);
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+}
+
+.formLabel {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+.formInput {
+    background: var(--surface-2);
+}
+
+.loginBtn {
+    margin-top: var(--sp-1);
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 0.9375rem;
+}
+
+.demoHint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-3);
+}
+
+/* Hero preview */
+.heroPreview {
+    background: var(--surface);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-elevated);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+}
+
+.previewBar {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.previewDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.previewURL {
+    flex: 1;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.previewBody {
+    padding: var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+}
+
+.previewCard {
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+}
+
+.previewMeta {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    margin-bottom: 6px;
+}
+
+.previewBig {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-1);
+    line-height: 1;
+}
+
+.previewSub {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    margin-top: 6px;
+}
+
+.previewBloom {
+    display: flex;
+    gap: 4px;
+    margin: var(--sp-2) 0;
+}
+
+.previewBlock {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+/* Features */
+.features {
+    background: var(--surface-2);
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    padding: var(--sp-8) 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.featuresGlow {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 40%;
+    background: radial-gradient(ellipse at center, rgba(255, 122, 0, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.featuresInner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--sp-5);
+    position: relative;
+}
+
+.sectionHeader {
+    text-align: center;
+    margin-bottom: var(--sp-7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.sectionTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.sectionSub {
+    color: var(--text-2);
+    max-width: 52ch;
+    line-height: 1.7;
+}
+
+.featureGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-4);
+}
+
+.featureCard {
+    padding: var(--sp-5);
+}
+
+.featureIcon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--sp-3);
+}
+
+.featureTitle {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: var(--sp-2);
+}
+
+.featureDesc {
+    font-size: 0.875rem;
+    color: var(--text-2);
+    line-height: 1.6;
+}
+
+/* CTA */
+.ctaSection {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--sp-8) var(--sp-5);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-5);
+}
+
+.ctaTitle {
+    font-size: 2.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.ctaBtn {
+    padding: 16px 36px;
+    font-size: 1rem;
+}
+
+/* Footer */
+.footer {
+    border-top: 1px solid var(--border-light);
+    padding: var(--sp-4) var(--sp-5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-size: 0.8125rem;
+    color: var(--text-3);
+}
+
+@media (max-width: 900px) {
+    .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .heroContent {
+        align-items: center;
+    }
+
+    .heroSub {
+        max-width: 100%;
+    }
+
+    .heroPill,
+    .loginForm {
+        align-self: center;
+        width: 100%;
+        max-width: 420px;
+    }
+
+    .featureGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .heroTitle {
+        font-size: 2.25rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .featureGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .heroTitle {
+        font-size: 1.875rem;
+    }
+
+    .navLinks {
+        display: none;
+    }
+}

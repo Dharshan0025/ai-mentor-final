@@ -1,0 +1,988 @@
+/* ── Page ──────────────────────────────────────────────────────── */
+.page {
+    padding: var(--sp-5) var(--sp-6);
+    max-width: 1180px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+/* ── Load / Error ──────────────────────────────────────────────── */
+.loadState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 55vh;
+    gap: 14px;
+    color: var(--text-2);
+    font-size: 0.9375rem;
+}
+
+.spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.retryBtn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1.5px solid var(--accent);
+    background: none;
+    color: var(--accent);
+    font-size: 0.875rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+    padding: var(--sp-4);
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border-light);
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+}
+
+.headerAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF7A00, #FF4500);
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(255, 122, 0, .3);
+}
+
+.greeting {
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+}
+
+.greetingSub {
+    font-size: 0.8125rem;
+    color: var(--text-3);
+    margin-top: 2px;
+}
+
+.headerBadges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* ── Section header ────────────────────────────────────────────── */
+.secHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sp-3);
+    gap: 8px;
+}
+
+.secTitle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-3);
+}
+
+.secTitle h2 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+}
+
+.secBadge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-3);
+    border: 1px solid var(--border-light);
+    font-weight: 600;
+}
+
+.viewAll {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8125rem;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+    transition: gap 150ms;
+}
+
+.viewAll:hover {
+    gap: 7px;
+}
+
+/* ── Metric Strip ──────────────────────────────────────────────── */
+.metricStrip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--sp-3);
+}
+
+.metricCard {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-lg);
+    padding: var(--sp-3) var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.metricTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.metricLabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-3);
+    font-weight: 600;
+}
+
+.metricValue {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.metricSub {
+    font-size: 0.7rem;
+    color: var(--text-3);
+}
+
+/* ── Two-column rows ───────────────────────────────────────────── */
+.row2 {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: var(--sp-4);
+    align-items: start;
+}
+
+/* ── Three-column row ──────────────────────────────────────────── */
+.row3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.7fr;
+    gap: var(--sp-4);
+    align-items: start;
+}
+
+/* ── CGPA chart ────────────────────────────────────────────────── */
+.chartCard,
+.briefingCard,
+.assignCard,
+.attCard,
+.actCard,
+.arrearCard,
+.libraryCard,
+.mentorCard {
+    padding: var(--sp-4);
+}
+
+.chartWrap {
+    height: 175px;
+    margin-bottom: 8px;
+}
+
+.cgpaChips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8125rem;
+    color: var(--text-2);
+}
+
+/* ── AI Briefing ───────────────────────────────────────────────── */
+.briefingList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.briefingItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-left: 3px solid;
+    background: var(--surface-2);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    font-size: 0.8125rem;
+    color: var(--text-2);
+    line-height: 1.5;
+}
+
+.briefingItem p {
+    margin: 0;
+}
+
+/* ── Subject Intelligence Grid ─────────────────────────────────── */
+.subjectGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: var(--sp-3);
+}
+
+.subjectCard {
+    border: 1px solid var(--border-light);
+    border-top-width: 3px;
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: box-shadow 150ms;
+}
+
+.subjectCard:hover {
+    box-shadow: var(--shadow-card);
+}
+
+.subjectCardTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.subjectCode {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.subjectName {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-1);
+    line-height: 1.3;
+}
+
+/* Attendance bar in subject card */
+.attBar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    position: relative;
+    overflow: visible;
+}
+
+.attBarFill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 600ms ease;
+}
+
+.attLine75 {
+    position: absolute;
+    left: 75%;
+    top: -3px;
+    width: 1.5px;
+    height: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 1px;
+}
+
+.subjectMeta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.subjectCredits {
+    font-size: 0.65rem;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ── Assignments ───────────────────────────────────────────────── */
+.assignTabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: var(--sp-3);
+}
+
+.assignList {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 12px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.assignRow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.assignRow:last-child {
+    border-bottom: none;
+}
+
+.assignInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.assignTitle {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.assignSub {
+    font-size: 0.675rem;
+    color: var(--text-3);
+}
+
+.progressBarWrap {
+    height: 5px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progressBarFill {
+    height: 100%;
+    background: linear-gradient(90deg, #10B981, #34D399);
+    border-radius: 999px;
+    transition: width 600ms ease;
+}
+
+.progressLabel {
+    font-size: 0.7rem;
+    color: var(--text-3);
+    margin-top: 4px;
+}
+
+/* ── Attendance per subject ────────────────────────────────────── */
+.attList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.attRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attSubName {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    width: 100px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attTrack {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 999px;
+    position: relative;
+    overflow: visible;
+}
+
+.attThreshold {
+    position: absolute;
+    left: 75%;
+    top: -3px;
+    width: 1.5px;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 1px;
+}
+
+.attFill {
+    height: 100%;
+    border-radius: 999px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: width 600ms ease;
+}
+
+/* ── Historical semesters ──────────────────────────────────────── */
+.histList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.histBlock {
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    overflow: hidden;
+}
+
+.histToggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: background 150ms;
+}
+
+.histToggle:hover {
+    background: var(--border-light);
+}
+
+.histSemLabel {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1);
+    flex: none;
+}
+
+.histAvg {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-left: auto;
+}
+
+.histTable {
+    padding: 8px 0;
+}
+
+.histTableHeader,
+.histTableRow {
+    display: grid;
+    grid-template-columns: 90px 1fr 60px 55px 50px;
+    gap: 8px;
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    align-items: center;
+}
+
+.histTableHeader {
+    font-size: 0.7rem;
+    color: var(--text-3);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+}
+
+.histTableRow:hover {
+    background: var(--surface-2);
+}
+
+.histCode {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-3);
+}
+
+.histName {
+    font-size: 0.8125rem;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Next semester preview ─────────────────────────────────────── */
+.nextSemGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: var(--sp-2);
+}
+
+.nextSemCard {
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: border-color 150ms;
+}
+
+.nextSemCard:hover {
+    border-color: var(--accent);
+}
+
+.nextSemCode {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+}
+
+.nextSemName {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-1);
+    line-height: 1.3;
+}
+
+.nextSemMeta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+/* ── Activities ────────────────────────────────────────────────── */
+.actList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.actRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.actRow:last-child {
+    border-bottom: none;
+}
+
+.actIcon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.actInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.actTitle {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+.actMeta {
+    font-size: 0.675rem;
+    color: var(--text-3);
+    text-transform: capitalize;
+}
+
+/* ── Arrears ───────────────────────────────────────────────────── */
+.arrearRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.arrearRow:last-child {
+    border-bottom: none;
+}
+
+.arrearInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.arrearName {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+.arrearMeta {
+    font-size: 0.675rem;
+    color: var(--text-3);
+}
+
+/* ── Library + Mentoring stack ─────────────────────────────────── */
+.stackCol {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+}
+
+.libRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.libRow:last-child {
+    border-bottom: none;
+}
+
+.libInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.libTitle {
+    font-size: 0.8125rem;
+    color: var(--text-1);
+    font-weight: 500;
+}
+
+.mentorRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.mentorRow:last-child {
+    border-bottom: none;
+}
+
+.mentorDate {
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 700;
+    flex-shrink: 0;
+    min-width: 40px;
+}
+
+.mentorInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.mentorTitle {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-1);
+}
+
+.mentorSub {
+    font-size: 0.675rem;
+    color: var(--text-3);
+}
+
+/* ── Fee grid ──────────────────────────────────────────────────── */
+.feeGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--sp-3);
+}
+
+.feeCard {
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.feeTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.feeSem {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-1);
+}
+
+.feeType {
+    font-size: 0.75rem;
+    color: var(--text-2);
+    text-transform: capitalize;
+}
+
+.feePct {
+    height: 5px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.feeNums {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* ── Placement ─────────────────────────────────────────────────── */
+.placementRow_ {
+    display: flex;
+    gap: var(--sp-4);
+    flex-wrap: wrap;
+}
+
+.eligBox {
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-md);
+    padding: var(--sp-3) var(--sp-4);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.eligTitle {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-3);
+}
+
+.eligRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.drivesTable {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.driveRow {
+    display: grid;
+    grid-template-columns: 1.2fr 2fr 80px auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--surface-2);
+    border-radius: var(--r-md);
+}
+
+.driveCompany {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-1);
+}
+
+.driveRole {
+    font-size: 0.8125rem;
+    color: var(--text-2);
+}
+
+/* ── Chat entry ────────────────────────────────────────────────── */
+.chatCard {
+    padding: var(--sp-4) var(--sp-5);
+}
+
+.chatCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--sp-3);
+}
+
+.chatInputRow {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--sp-2);
+    transition: border-color 150ms;
+}
+
+.chatInputRow:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.chatInput {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 6px var(--sp-2);
+    font-size: 0.9375rem;
+    box-shadow: none;
+}
+
+.chatInput:focus {
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.chatSend {
+    padding: 8px 14px;
+    border-radius: var(--r-sm);
+    flex-shrink: 0;
+}
+
+/* ── Quick Actions ─────────────────────────────────────────────── */
+.quickActions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--sp-3);
+}
+
+.quickAction {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    text-decoration: none;
+    color: var(--text-1);
+}
+
+/* ── Empty state ───────────────────────────────────────────────── */
+.empty {
+    font-size: 0.8125rem;
+    color: var(--text-3);
+    text-align: center;
+    padding: 14px 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .metricStrip {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 960px) {
+
+    .row2,
+    .row3 {
+        grid-template-columns: 1fr;
+    }
+
+    .metricStrip {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .subjectGrid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+
+    .quickActions {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .driveRow {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: var(--sp-3);
+    }
+
+    .metricStrip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .histTableHeader,
+    .histTableRow {
+        grid-template-columns: 70px 1fr 50px 45px;
+    }
+
+    .histTableHeader span:last-child,
+    .histTableRow span:last-child {
+        display: none;
+    }
+}
