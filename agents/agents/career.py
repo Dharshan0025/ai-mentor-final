@@ -2,20 +2,39 @@
 AI-Mentor — Career Intelligence Agent
 Handles: career domain mapping, strength analysis, roadmap generation,
          certification recommendations, internship/placement guidance.
-LLM: Gemini Flash (nuanced career reasoning)
+LLM: AWS Bedrock (ChatGPT 120b) with Groq fallback
 
 Architecture:
   1. compute_career_profile()  — deterministic, data-driven analysis
   2. career_node()             — LangGraph node (LLM narrative)
   3. generate_career_report()  — full structured JSON for Career page
 """
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from config import settings
 import logging
 import json
 
 logger = logging.getLogger(__name__)
+
+
+def _get_llm(temperature: float = 0.4, max_tokens: int = 600):
+    """Return Bedrock ChatGPT first, fall back to Groq."""
+    try:
+        from langchain_aws import ChatBedrock
+        return ChatBedrock(
+            model_id=settings.bedrock_model_id,
+            region_name=settings.aws_region,
+            model_kwargs={"temperature": temperature, "max_tokens": max_tokens},
+        ), "bedrock"
+    except Exception as e:
+        logger.warning(f"Bedrock init failed ({e}), using Groq")
+        from langchain_groq import ChatGroq
+        return ChatGroq(
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ), "groq"
 
 
 # ── Career Domain Mapping ───────────────────────────────────────────────────
@@ -333,12 +352,7 @@ Response rules:
 
 def career_node(state: dict) -> dict:
     """Career intelligence agent — academic-to-career mapping with LLM narrative."""
-    llm = ChatGoogleGenerativeAI(
-        google_api_key=settings.google_api_key,
-        model=settings.gemini_flash_model,
-        temperature=0.4,
-        max_output_tokens=600,
-    )
+    llm, provider = _get_llm()
 
     profile = state.get("student_profile", {})
     career_data = compute_career_profile(profile)
@@ -359,7 +373,7 @@ def career_node(state: dict) -> dict:
         **state,
         "career_output": result.content,
         "primary_agent": "career",
-        "model_used": settings.gemini_flash_model,
+        "model_used": provider,
         "citations": [
             {"label": f"CGPA: {career_data['cgpa']}", "source": "ERP Academic Record"},
             {"label": f"Primary Path: {career_data['primary_domain']}", "source": "Career Intelligence Engine"},

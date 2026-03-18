@@ -1,0 +1,79 @@
+/* StudyModeSelector */
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: border-color 150ms, background 150ms, transform 100ms;
+}
+.card:hover {
+    border-color: var(--accent);
+    background: var(--hover);
+    transform: translateX(2px);
+}
+.active {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.icon { font-size: 1.2rem; min-width: 28px; text-align: center; }
+
+.info { flex: 1; }
+
+.label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.desc {
+    font-size: 0.7rem;
+    color: var(--text-3);
+    margin-top: 2px;
+}
+
+.check {
+    color: var(--accent);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* Compact variant */
+.compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.compactBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: var(--text-2);
+    transition: background 150ms, border-color 150ms;
+    white-space: nowrap;
+}
+.compactBtn:hover { background: var(--hover); border-color: var(--accent); }
+.activeCompact {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}

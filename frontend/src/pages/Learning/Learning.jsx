@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
     CheckCircle, ChevronRight, Zap, BookOpen,
     RotateCcw, Trophy, Clock, Brain, Loader2,
@@ -6,8 +7,7 @@ import {
 } from 'lucide-react';
 import styles from './Learning.module.css';
 import { LearningSkeleton } from '../../components/Skeleton/Skeleton';
-import { BLOOM_LEVELS } from '../../data/mockData';
-import { generateQuiz, getStudentProfile, getMyMastery } from '../../services/api';
+import { generateQuiz, getStudentProfile, getMyMastery, getTutorOptions } from '../../services/api';
 
 // ── Real syllabus topics per subject code ─────────────────────────────────────
 // Aligned with Anna University CSBS Regulation 2021, Sem 4-7
@@ -254,6 +254,7 @@ function QuizPlayer({ subject, topic, bloomLevel, onBack }) {
 // ── Main Learning Page ────────────────────────────────────────────────────────
 export default function Learning() {
     const [subjects, setSubjects] = useState([]);
+    const [topicsBySubject, setTopicsBySubject] = useState({});
     const [loading, setLoading] = useState(true);
     const [mastery, setMastery] = useState({ topics: [], attempts: [] });
     const [masteryLoading, setMasteryLoading] = useState(true);
@@ -285,9 +286,13 @@ export default function Learning() {
             .then(data => setMastery({ topics: data.topics || [], attempts: data.attempts || [] }))
             .catch(() => setMastery({ topics: [], attempts: [] }))
             .finally(() => setMasteryLoading(false));
+
+        getTutorOptions()
+            .then(data => setTopicsBySubject(data.topics_by_subject || {}))
+            .catch(() => setTopicsBySubject({}));
     }, []);
 
-    const topics = selectedSubject ? (TOPICS[selectedSubject.code] || []) : [];
+    const topics = selectedSubject ? (topicsBySubject[selectedSubject.code] || []) : [];
     const masteryTopics = selectedSubject
         ? (mastery.topics || []).filter(t => t.subject_code === selectedSubject.code)
         : [];
@@ -444,9 +449,9 @@ export default function Learning() {
                                     <h2>{selectedTopic}</h2>
                                     <p>Ask the Mentor to explain this topic, then test yourself. Quiz difficulty adapts to your <strong>Bloom L{selectedSubject.bloomLevel ?? 1}</strong>.</p>
                                     <div className={styles.learnActions}>
-                                        <a href={`/chat?q=explain ${selectedTopic} in ${selectedSubject.name}`} className={styles.chatLink}>
+                                        <Link to={`/chat?q=${encodeURIComponent(`explain ${selectedTopic} in ${selectedSubject.name}`)}`} className={styles.chatLink}>
                                             💬 Ask Mentor to explain {selectedTopic}
-                                        </a>
+                                        </Link>
                                         <button className={styles.quizStartBtn} onClick={() => setViewMode('quiz')}>
                                             <Zap size={14} /> Start AI Quiz
                                         </button>

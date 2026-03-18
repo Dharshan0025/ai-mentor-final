@@ -1,0 +1,324 @@
+/* CheckpointQuiz — Light cream/orange theme */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(26, 26, 26, 0.5);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--r-xl);
+    padding: 1.75rem;
+    max-width: 520px;
+    width: 100%;
+    box-shadow: var(--shadow-elevated);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--watch);
+    animation: pulse 1.2s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(0.6);
+    }
+}
+
+.badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--watch);
+    flex: 1;
+}
+
+.skipBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text-2);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.55rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.skipBtn:hover {
+    color: var(--text-1);
+    border-color: var(--text-2);
+}
+
+.question {
+    font-size: 0.9375rem;
+    color: var(--text-1);
+    line-height: 1.6;
+    margin: 0 0 1.25rem;
+    font-weight: 600;
+}
+
+/* MCQ Options */
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 0.65rem 0.85rem;
+    color: var(--text-2);
+    font-size: 0.875rem;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.option:hover:not(:disabled) {
+    background: var(--accent-light);
+    border-color: rgba(255, 122, 0, 0.3);
+    color: var(--text-1);
+}
+
+.optionSelected {
+    background: var(--accent-light) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+.optionCorrect {
+    background: var(--safe-light) !important;
+    border-color: var(--safe) !important;
+    color: #065f46 !important;
+}
+
+.optionWrong {
+    background: var(--risk-light) !important;
+    border-color: var(--risk) !important;
+    color: #991b1b !important;
+}
+
+.optionLetter {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    color: var(--text-2);
+}
+
+.optionSelected .optionLetter {
+    background: var(--accent);
+    color: #fff;
+}
+
+.iconCorrect {
+    color: var(--safe);
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.iconWrong {
+    color: var(--risk);
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Short Answer */
+.textarea {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--text-1);
+    font-size: 0.875rem;
+    padding: 0.75rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+    line-height: 1.5;
+}
+
+.textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.08);
+    background: var(--surface);
+}
+
+/* Feedback */
+.feedback {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border-radius: var(--r-md);
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.feedbackPass {
+    background: var(--safe-light);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #065f46;
+}
+
+.feedbackPass svg {
+    color: var(--safe);
+    flex-shrink: 0;
+}
+
+.feedbackFail {
+    background: var(--risk-light);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #991b1b;
+}
+
+.feedbackFail svg {
+    color: var(--risk);
+    flex-shrink: 0;
+}
+
+/* Buttons */
+.submitBtn,
+.continueBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: var(--r-md);
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.submitBtn {
+    background: var(--accent);
+    color: #fff;
+}
+
+.submitBtn:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.submitBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.continueBtn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    margin-top: 0.5rem;
+}
+
+.continueBtn:hover {
+    color: var(--text-1);
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* V4 additions */
+.timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    margin-left: auto;
+    padding: 2px 6px;
+    background: var(--surface-2);
+    border-radius: var(--r-full);
+    border: 1px solid var(--border);
+}
+
+.sm2Badge {
+    margin-top: 8px;
+    padding: 7px 12px;
+    border-radius: var(--r-md);
+    background: rgba(22, 163, 74, 0.06);
+    border: 1px solid rgba(22, 163, 74, 0.18);
+    font-size: 0.74rem;
+    color: var(--text-2);
+    text-align: center;
+    font-style: italic;
+}

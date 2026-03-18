@@ -1,0 +1,129 @@
+/* VoiceQuiz — Phase 7 V3 */
+
+.overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; backdrop-filter: blur(4px);
+}
+
+.card {
+    background: var(--surface, #FFFDF7);
+    border: 1.5px solid var(--border, #E8E0D5);
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%; max-width: 480px;
+    display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.topRow {
+    display: flex; align-items: center; gap: 10px;
+}
+.badge {
+    padding: 3px 10px;
+    background: rgba(255,122,0,0.12); color: var(--accent,#FF7A00);
+    border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+}
+.progress { font-size: 0.8rem; color: var(--text-3,#8B7355); margin-left: auto; }
+.closeBtn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 10px; background: #FFF0E8; color: #CC5500;
+    border: 1px solid #FFD4B0; border-radius: 6px;
+    font-size: 0.76rem; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+}
+.closeBtn:hover { background: #FFE0CC; }
+
+.questionBox {
+    padding: 16px;
+    background: var(--bg,#F4F1EC);
+    border-radius: 10px;
+    border: 1px solid var(--border,#E8E0D5);
+}
+
+.statusLabel {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text-3,#8B7355);
+    margin: 0 0 8px;
+    animation: pulse 1.4s ease-in-out infinite;
+}
+.listening { color: #DC2626; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.question {
+    font-size: 0.95rem; font-weight: 600;
+    color: var(--text-1,#1C1410); margin: 0 0 10px;
+    line-height: 1.5;
+}
+
+.options { display: flex; flex-wrap: wrap; gap: 6px; }
+.optChip {
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--surface,#FFFDF7);
+    border: 1px solid var(--border,#E8E0D5);
+    font-size: 0.78rem; color: var(--text-2,#5C4A35);
+}
+.optCorrect {
+    background: rgba(16,185,129,0.1);
+    border-color: #10B981;
+    color: #065F46;
+    font-weight: 700;
+}
+
+.transcriptBox {
+    padding: 10px 14px;
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 8px;
+    font-size: 0.83rem; color: var(--text-2,#5C4A35);
+}
+.txLabel { font-weight: 700; margin-right: 4px; }
+
+.resultBar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+}
+.correct { background: rgba(16,185,129,0.1); color: #065F46; border: 1px solid #10B981; }
+.wrong   { background: rgba(239,68,68,0.08); color: #991B1B; border: 1px solid #EF4444; }
+
+.nextBtn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 20px; background: var(--accent,#FF7A00); color: #fff;
+    border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; transition: background 0.15s;
+}
+.nextBtn:hover { background: #CC5500; }
+
+.skipBtn {
+    background: transparent; border: none;
+    font-size: 0.78rem; color: var(--text-3,#8B7355);
+    cursor: pointer; text-decoration: underline; align-self: center;
+}
+
+.scoreBar {
+    text-align: center; font-size: 0.8rem; color: var(--text-3,#8B7355);
+    padding-top: 6px; border-top: 1px solid var(--border,#E8E0D5);
+}
+
+/* Done screen */
+.donePanel {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    padding: 20px 0;
+}
+.scoreRing {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: conic-gradient(#FF7A00 var(--pct, 60%), var(--bg,#F4F1EC) 0);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+}
+.scoreNum { font-size: 1.6rem; font-weight: 800; color: var(--accent,#FF7A00); }
+.scoreDen { font-size: 0.75rem; color: var(--text-3,#8B7355); }
+.doneMsg  { font-size: 1rem; font-weight: 700; color: var(--text-1,#1C1410); }
+.closeBtn2 {
+    padding: 8px 20px; background: var(--accent,#FF7A00); color: #fff;
+    border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+}

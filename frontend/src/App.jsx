@@ -12,6 +12,11 @@ import Schedule from './pages/Schedule/Schedule';
 import Career from './pages/Career/Career';
 import Profile from './pages/Profile/Profile';
 import Tutor from './pages/Tutor/Tutor';
+import Progress from './pages/Progress/Progress';
+import ExamMode from './pages/ExamMode/ExamMode';
+import KnowledgeHub from './pages/KnowledgeHub/KnowledgeHub';
+import Roadmap from './pages/Roadmap/Roadmap';
+import Problems from './pages/Problems/Problems';
 import AppLayout from './components/Layout/AppLayout';
 
 /** Redirects unauthenticated users to /login */
@@ -61,6 +66,11 @@ function AppRoutes() {
         <Route path="schedule" element={<Schedule />} />
         <Route path="career" element={<Career />} />
         <Route path="tutor" element={<Tutor />} />
+        <Route path="learn/progress" element={<Progress />} />
+        <Route path="learn/exam" element={<ExamMode />} />
+        <Route path="knowledge" element={<KnowledgeHub />} />
+        <Route path="roadmap" element={<Roadmap />} />
+        <Route path="problems" element={<Problems />} />
         <Route path="profile" element={<Profile />} />
       </Route>
 

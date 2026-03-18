@@ -115,9 +115,9 @@ def _format_learning_profile(profile: dict, message: str, learning_dna: dict | N
         weak = learning_dna.get("weak_topics") or []
         strong = learning_dna.get("strong_topics") or []
         if weak:
-            dna_lines.append(f"Weak topics (examples): {[w.get('topic') or w.get('subject_code') for w in weak[:3]]}")
+            dna_lines.append(f"Weak topics (examples): {[w if isinstance(w, str) else str(w.get('topic') or w.get('subject_code')) for w in weak[:3]]}")
         if strong:
-            dna_lines.append(f"Strong topics (examples): {[s.get('topic') or s.get('subject_code') for s in strong[:3]]}")
+            dna_lines.append(f"Strong topics (examples): {[s if isinstance(s, str) else str(s.get('topic') or s.get('subject_code')) for s in strong[:3]]}")
 
     dna_block = "\n".join(dna_lines) if dna_lines else "No historical learning DNA available; assume average CS engineering student."
 

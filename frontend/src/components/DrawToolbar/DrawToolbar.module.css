@@ -1,0 +1,66 @@
+/* DrawToolbar — Phase 7 V2 */
+
+.toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    background: var(--surface, #FFFDF7);
+    border: 1px solid var(--border, #E8E0D5);
+    border-radius: 10px;
+}
+
+.collapseBtn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 8px;
+    background: transparent; border: none; cursor: pointer;
+    font-size: 0.72rem; font-weight: 600; color: var(--text-3, #8B7355);
+}
+.collapseBtn:hover { color: var(--accent, #FF7A00); }
+
+.toolRow {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
+
+.toolBtn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg, #F4F1EC);
+    border: 1.5px solid var(--border, #E8E0D5);
+    border-radius: 7px; cursor: pointer;
+    color: var(--text-2, #5C4A35);
+    transition: all 0.12s;
+}
+.toolBtn:hover  { border-color: var(--accent, #FF7A00); color: var(--accent, #FF7A00); }
+.toolActive     { background: var(--accent, #FF7A00) !important; color: #fff !important; border-color: var(--accent, #FF7A00) !important; }
+
+.swatch {
+    width: 20px; height: 20px;
+    border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.12s;
+    flex-shrink: 0;
+}
+.swatch:hover   { transform: scale(1.15); }
+.swatchActive   { border-color: var(--text-1, #1C1410) !important; transform: scale(1.15); }
+
+.divider {
+    width: 1px; height: 20px;
+    background: var(--border, #E8E0D5);
+    flex-shrink: 0; margin: 0 2px;
+}
+
+.sizeSlider {
+    width: 60px;
+    accent-color: var(--accent, #FF7A00);
+}
+
+.clearBtn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(239,68,68,0.08); color: #DC2626;
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 7px; cursor: pointer;
+    transition: background 0.12s;
+}
+.clearBtn:hover { background: rgba(239,68,68,0.18); }

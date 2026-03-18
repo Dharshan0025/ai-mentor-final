@@ -1,0 +1,62 @@
+/* LeaderboardWidget — Phase 7 V6 */
+
+.widget {
+    background: var(--surface, #FFFDF7);
+    border: 1.5px solid var(--border, #E8E0D5);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 10px;
+}
+
+.header {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 0.82rem; font-weight: 700;
+    color: var(--text-2, #5C4A35);
+}
+.refreshBtn {
+    margin-left: auto; background: transparent; border: none;
+    cursor: pointer; color: var(--text-3, #8B7355);
+    display: flex; align-items: center;
+}
+.refreshBtn:hover { color: var(--accent, #FF7A00); }
+
+.loader {
+    display: flex; justify-content: center; padding: 16px;
+    color: var(--text-3, #8B7355);
+}
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.err  { font-size: 0.78rem; color: #DC2626; margin: 0; }
+.empty { font-size: 0.8rem; color: var(--text-3,#8B7355); margin: 0; text-align: center; padding: 10px; }
+
+.rows { display: flex; flex-direction: column; gap: 4px; }
+
+.row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 8px;
+    background: var(--bg, #F4F1EC);
+    font-size: 0.8rem; transition: background 0.12s;
+}
+.row:hover { background: rgba(255,122,0,0.05); }
+.self {
+    border: 1.5px solid var(--accent, #FF7A00);
+    background: rgba(255,122,0,0.06) !important;
+}
+
+.rank   { width: 28px; text-align: center; font-size: 0.9rem; flex-shrink: 0; font-weight: 700; }
+.nameCol { flex: 1; display: flex; flex-direction: column; }
+.name   { font-weight: 600; color: var(--text-1, #1C1410); }
+.section { font-size: 0.68rem; color: var(--text-3, #8B7355); }
+.right  { display: flex; align-items: center; gap: 6px; }
+.xp     { font-size: 0.76rem; font-weight: 700; color: var(--accent, #FF7A00); }
+.streak {
+    display: flex; align-items: center; gap: 2px;
+    font-size: 0.68rem; color: #DC2626; font-weight: 700;
+}
+.level {
+    font-size: 0.68rem; font-weight: 700;
+    padding: 1px 6px;
+    background: rgba(99,102,241,0.1); color: #4F46E5;
+    border-radius: 10px;
+}

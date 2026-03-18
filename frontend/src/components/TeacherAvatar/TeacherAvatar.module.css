@@ -1,0 +1,144 @@
+.wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.18), transparent 60%);
+    transition: transform 0.3s ease;
+}
+
+/* State-specific body accent rings */
+.idle {
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+}
+
+.teaching {
+    filter: drop-shadow(0 0 10px rgba(30, 90, 200, 0.35));
+}
+
+.thinking {
+    filter: drop-shadow(0 0 8px rgba(55, 65, 81, 0.3));
+    animation: headTilt 1.5s ease infinite alternate;
+}
+
+.celebrating {
+    filter: drop-shadow(0 0 14px rgba(255, 122, 0, 0.5));
+    animation: bounce 0.5s ease infinite alternate;
+}
+
+.encouraging {
+    filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.5));
+    animation: pulse 1s ease infinite alternate;
+}
+
+/* Eye animations */
+.eyeBlink {
+    animation: blink 3.5s ease infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    94%,
+    100% {
+        ry: 4.5;
+    }
+
+    96%,
+    98% {
+        ry: 0.5;
+    }
+}
+
+/* Mouth talk animation */
+.mouth {
+    animation: talk 0.35s ease infinite alternate;
+}
+
+@keyframes talk {
+    from {
+        ry: 2;
+    }
+
+    to {
+        ry: 4.5;
+    }
+}
+
+/* Sparkles for teaching state */
+.sparkle1 {
+    fill: #FCD34D;
+    animation: sparkle 1s ease infinite alternate;
+}
+
+.sparkle2 {
+    fill: #93C5FD;
+    animation: sparkle 0.7s ease 0.3s infinite alternate;
+}
+
+@keyframes sparkle {
+    from {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* Confetti for celebrating */
+.confetti1 {
+    animation: confetti 0.8s ease infinite alternate;
+}
+
+.confetti2 {
+    animation: confetti 0.6s ease 0.2s infinite alternate;
+}
+
+.confetti3 {
+    animation: confetti 1s ease 0.4s infinite alternate;
+}
+
+@keyframes confetti {
+    from {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.6;
+    }
+
+    to {
+        transform: translateY(-8px) rotate(20deg);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-5px);
+    }
+}
+
+@keyframes pulse {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.06);
+    }
+}
+
+@keyframes headTilt {
+    from {
+        transform: rotate(-4deg);
+    }
+
+    to {
+        transform: rotate(4deg);
+    }
+}

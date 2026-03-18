@@ -1,0 +1,186 @@
+/* DiagramHistory panel */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg, 16px);
+    width: 100%;
+    max-width: 860px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-xl, 0 24px 48px rgba(0,0,0,.35));
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.header h3 { font-size: 1rem; font-weight: 600; margin: 0; color: var(--text-1); }
+
+.close {
+    border: none;
+    background: transparent;
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 150ms, color 150ms;
+}
+.close:hover { background: var(--hover); color: var(--text-1); }
+
+.loading, .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-3);
+    font-size: 0.875rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.card {
+    background: var(--surface-2, var(--hover));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 150ms, border-color 150ms, box-shadow 150ms;
+}
+.card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+
+.cardTop {
+    width: 100%;
+    height: 120px;
+    overflow: hidden;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview { width: 100%; transform: scale(0.7); transform-origin: center; }
+.preview svg { max-width: 100%; height: auto; }
+
+.previewPlaceholder {
+    font-size: 0.75rem;
+    color: var(--text-3);
+}
+
+.cardBottom {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-top: 1px solid var(--border);
+}
+
+.cardTitle {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-1);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cardMeta {
+    font-size: 0.65rem;
+    color: var(--text-3);
+}
+
+.dlBtn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    color: var(--text-2);
+    transition: background 150ms;
+}
+.dlBtn:hover { background: var(--hover); }
+
+/* Zoom modal */
+.zoom {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.8);
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.zoomInner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.zoomHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-1);
+}
+.zoomActions {
+    display: flex;
+    gap: 8px;
+}
+.zoomActions button {
+    background: var(--hover);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    color: var(--text-1);
+    transition: background 150ms;
+}
+.zoomActions button:hover { background: var(--accent); color: #fff; }
+.zoomSvg {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.zoomSvg svg { max-width: 100%; height: auto; }

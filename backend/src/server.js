@@ -44,6 +44,32 @@ app.use('/api/auth', authRouter);
 app.use('/api/student', studentRouter);
 app.use('/api/chat', chatRouter);
 
+// Phase 7: AI Debugger (no auth for quick analysis)
+import axios from 'axios';
+app.post('/api/debug/analyze', async (req, res, next) => {
+    try {
+        const AGENT = process.env.AGENT_SERVICE_URL || 'http://127.0.0.1:8000';
+        const { data } = await axios.post(`${AGENT}/debug/analyze`, req.body, { timeout: 30_000 });
+        res.json(data);
+    } catch (err) {
+        if (err.response?.data) return res.status(err.response.status).json(err.response.data);
+        next(err);
+    }
+});
+
+// Phase 7: Leaderboard (public – no auth needed)
+app.get('/api/leaderboard', async (req, res, next) => {
+    try {
+        const AGENT = process.env.AGENT_SERVICE_URL || 'http://127.0.0.1:8000';
+        const qs = req.query.subject_code ? `?subject_code=${req.query.subject_code}` : '';
+        const { data } = await axios.get(`${AGENT}/leaderboard${qs}`, { timeout: 10_000 });
+        res.json(data);
+    } catch (err) {
+        if (err.response?.data) return res.status(err.response.status).json(err.response.data);
+        next(err);
+    }
+});
+
 // Health
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'ai-mentor-backend', version: '0.1.0' });

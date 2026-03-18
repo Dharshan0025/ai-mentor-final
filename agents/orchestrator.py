@@ -53,6 +53,9 @@ class AgentState(TypedDict):
     career_output:      Optional[str]
     rag_context:        Optional[str]
 
+    # Sentiment (computed by emotional_node on every message)
+    sentiment_score:    float
+
     # Final merged response
     final_response:     str
     primary_agent:      str

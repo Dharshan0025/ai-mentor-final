@@ -1,0 +1,279 @@
+/* VoiceTeacher â€” Nova Sonic voice panel (cream/orange theme) */
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes barBounce {
+
+    0%,
+    100% {
+        transform: scaleY(0.3);
+    }
+
+    50% {
+        transform: scaleY(1.0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.voiceTeacher {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-top: 3px solid var(--accent);
+    border-radius: var(--r-lg);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-card);
+    animation: fadeIn 250ms ease both;
+    min-width: 280px;
+    max-width: 380px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.headerIcon {
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.headerTitle {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-1);
+    flex: 1;
+}
+
+.providerChip {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    color: var(--text-2);
+    white-space: nowrap;
+}
+
+.closeBtn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: var(--surface-2);
+    color: var(--text-3);
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast), color var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.closeBtn:hover {
+    background: var(--risk-light);
+    color: var(--risk);
+}
+
+/* Personality Selector */
+.personalities {
+    display: flex;
+    gap: 6px;
+}
+
+.personalityBtn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 6px 6px;
+    border-radius: var(--r-md);
+    border: 1.5px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.personalityBtn:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.personalityActive {
+    border-color: var(--accent) !important;
+    background: var(--accent-light) !important;
+    box-shadow: 0 0 0 2px rgba(255, 122, 0, 0.12);
+}
+
+.personalityBtn span {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-1);
+}
+
+.personalityDesc {
+    font-size: 0.6rem !important;
+    font-weight: 400 !important;
+    color: var(--text-3) !important;
+}
+
+/* Waveform */
+.waveRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.waveform {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 28px;
+}
+
+.waveBar {
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.2s;
+}
+
+.waveformActive .waveBar {
+    background: var(--accent);
+    animation: barBounce 0.6s ease-in-out infinite;
+}
+
+.stateLabel {
+    flex: 1;
+    font-size: 0.72rem;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-style: italic;
+}
+
+.readyText {
+    color: var(--text-3);
+}
+
+.dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    animation: spin 1.4s linear infinite;
+    /* reusing spin as pulse proxy */
+}
+
+.dotRed {
+    background: var(--risk);
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Mic button */
+.micBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.micBtn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.micBtnActive {
+    background: var(--risk-light) !important;
+    border-color: var(--risk) !important;
+    color: var(--risk) !important;
+}
+
+.micBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Hands-free */
+.handsFreeRow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--text-1);
+    cursor: pointer;
+}
+
+.handsFreeCheckbox {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.handsFreeHint {
+    font-size: 0.68rem;
+    color: var(--text-3);
+    font-weight: 400;
+}
+
+/* Error */
+.errorRow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--risk-light);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--r-sm);
+    font-size: 0.75rem;
+    color: var(--risk);
+}
+/* Speed slider — Phase 7 */
+.speedRow {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.74rem; color: var(--text-2);
+}
+.speedLabel { font-weight: 700; white-space: nowrap; min-width: 60px; }
+.speedSlider { flex: 1; accent-color: var(--accent); }
+.speedHint { font-size: 0.65rem; color: var(--text-3); white-space: nowrap; }

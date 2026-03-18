@@ -1,0 +1,119 @@
+/* CodeWalkthrough — GitHub Light style code block */
+
+.wrapper {
+    border-radius: var(--r-md);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+    background: #F8F9FA;
+    margin: 0.5rem 0;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.85rem;
+    background: #F1F3F5;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.dots {
+    display: flex;
+    gap: 5px;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+.lang {
+    font-size: 0.68rem;
+    color: var(--text-3);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex: 1;
+}
+
+.stepTag {
+    font-size: 0.65rem;
+    color: var(--watch);
+    background: var(--watch-light);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: var(--r-xs);
+    padding: 0.15rem 0.45rem;
+    font-weight: 700;
+}
+
+.body {
+    overflow-x: auto;
+}
+
+.pre {
+    margin: 0;
+    padding: 0.75rem 0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.8rem;
+    line-height: 1.7;
+}
+
+.line {
+    display: flex;
+    align-items: flex-start;
+    padding: 0 0.85rem;
+    transition: background 0.12s;
+    position: relative;
+}
+
+.line:hover {
+    background: rgba(255, 122, 0, 0.04);
+}
+
+.lineHighlighted {
+    background: rgba(255, 122, 0, 0.06) !important;
+    border-left: 3px solid var(--accent);
+    padding-left: calc(0.85rem - 3px);
+}
+
+.lineHighlighted .lineContent {
+    color: #7C2D12;
+}
+
+.lineNum {
+    min-width: 32px;
+    color: var(--text-3);
+    font-size: 0.7rem;
+    user-select: none;
+    padding-right: 0.75rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.lineHighlighted .lineNum {
+    color: var(--accent);
+    opacity: 1;
+}
+
+.lineContent {
+    color: #24292E;
+    white-space: pre;
+}
+
+.explanation {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    background: var(--accent-light);
+    border-top: 1px solid rgba(255, 122, 0, 0.15);
+    font-size: 0.8rem;
+    color: var(--text-1);
+    line-height: 1.5;
+}
+
+.explainIcon {
+    flex-shrink: 0;
+}

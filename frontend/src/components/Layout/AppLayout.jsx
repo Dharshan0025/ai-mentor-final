@@ -3,7 +3,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, MessageCircle, TrendingUp, BookOpen,
     Calendar, Briefcase, User, LogOut, Bell, X, AlertTriangle, Info,
-    GraduationCap
+    GraduationCap, BarChart3, Timer, Brain, Map, Puzzle
 } from 'lucide-react';
 import styles from './AppLayout.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -18,6 +18,11 @@ const NAV_ITEMS = [
     { to: '/schedule', icon: <Calendar size={20} />, label: 'Schedule' },
     { to: '/career', icon: <Briefcase size={20} />, label: 'Career' },
     { to: '/tutor', icon: <GraduationCap size={20} />, label: 'AI Tutor' },
+    { to: '/learn/progress', icon: <BarChart3 size={20} />, label: 'My Progress' },
+    { to: '/learn/exam', icon: <Timer size={20} />, label: 'Exam Mode' },
+    { to: '/knowledge', icon: <Brain size={20} />, label: 'Knowledge Hub' },
+    { to: '/roadmap', icon: <Map size={20} />, label: 'Study Roadmap' },
+    { to: '/problems', icon: <Puzzle size={20} />, label: 'Problem Bank' },
     { to: '/profile', icon: <User size={20} />, label: 'Profile' },
 ];
 

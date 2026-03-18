@@ -1,15 +1,35 @@
 """
 AI-Mentor — Emotional Intelligence Agent
-Handles: stress detection, motivation, burnout signals, 
+Handles: stress detection, motivation, burnout signals,
          empathetic support, mental health nudges
-LLM: Gemini 2.5 Flash (empathy quality > speed here)
+LLM: AWS Bedrock (ChatGPT 120b) with Groq fallback
 """
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_llm(temperature: float = 0.5, max_tokens: int = 400):
+    """Return Bedrock ChatGPT first, fall back to Groq."""
+    try:
+        from langchain_aws import ChatBedrock
+        return ChatBedrock(
+            model_id=settings.bedrock_model_id,
+            region_name=settings.aws_region,
+            model_kwargs={"temperature": temperature, "max_tokens": max_tokens},
+        ), "bedrock"
+    except Exception as e:
+        logger.warning(f"Bedrock init failed ({e}), using Groq")
+        from langchain_groq import ChatGroq
+        return ChatGroq(
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ), "groq"
+
 
 
 EMOTIONAL_SYSTEM = """You are the Emotional Intelligence Agent for an AI academic mentor.
@@ -136,12 +156,7 @@ def emotional_node(state: dict) -> dict:
         # Still expose sentiment_score for write-back — just no LLM response
         return {**state, "emotional_output": None, "sentiment_score": sentiment_score}
 
-    llm = ChatGoogleGenerativeAI(
-        google_api_key=settings.google_api_key,
-        model=settings.gemini_flash_model,
-        temperature=0.5,
-        max_output_tokens=400,
-    )
+    llm, provider = _get_llm()
 
     profile = state.get("student_profile", {})
     context = _format_emotional_context(profile)
@@ -159,7 +174,7 @@ def emotional_node(state: dict) -> dict:
         **state,
         "emotional_output": result.content,
         "sentiment_score": sentiment_score,
-        "model_used": settings.gemini_flash_model,
+        "model_used": provider,
     }
 
 

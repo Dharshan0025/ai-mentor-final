@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Zap, BookOpen, Brain, Heart, Calendar, TrendingUp, Briefcase, ChevronRight, AlertTriangle, BarChart2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import styles from './Chat.module.css';
@@ -28,8 +29,8 @@ const PIPELINE_STAGES = [
 
 // ── Action chips per agent type ───────────────────────────────────────────────
 const AGENT_CHIPS = {
-    academic: [{ label: '📊 View Predictions', path: '/predictions' }, { label: '📅 Get Schedule', path: '/schedule' }, { label: '🧪 Take Quiz', path: '/learning' }],
-    prediction: [{ label: '📅 Build Study Plan', path: '/schedule' }, { label: '📊 Full Prediction', path: '/predictions' }],
+    academic: [{ label: '📊 View Predictions', path: '/prediction' }, { label: '📅 Get Schedule', path: '/schedule' }, { label: '🧪 Take Quiz', path: '/learning' }],
+    prediction: [{ label: '📅 Build Study Plan', path: '/schedule' }, { label: '📊 Full Prediction', path: '/prediction' }],
     emotional: [{ label: '📅 Plan Rest Day', path: '/schedule' }, { label: '📖 Study Tips', path: '/learning' }],
     learning: [{ label: '🧪 Start Quiz', path: '/learning' }, { label: '📅 Schedule Practice', path: '/schedule' }],
     schedule: [{ label: '📅 View Full Schedule', path: '/schedule' }, { label: '🧪 Start Session', path: '/learning' }],
@@ -315,6 +316,9 @@ function ContextPanel({ student, briefing }) {
 
 // ── Main Chat component ───────────────────────────────────────────────────────
 export default function Chat() {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -323,6 +327,7 @@ export default function Chat() {
     const [briefing, setBriefing] = useState(null);
     const [student, setStudent] = useState(null);
     const bottomRef = useRef(null);
+    const prefillHandledRef = useRef(false);
 
     // Load student from localStorage + briefing from API
     useEffect(() => {
@@ -371,8 +376,30 @@ export default function Chat() {
         }
     }, [input, loading, messages, sessionId]);
 
+    useEffect(() => {
+        const stateMessage = location.state?.initialMessage?.trim();
+        const queryMessage = searchParams.get('q')?.trim();
+        const initialMessage = stateMessage || queryMessage;
+
+        if (!initialMessage || prefillHandledRef.current || loading) return;
+
+        prefillHandledRef.current = true;
+        setInput(initialMessage);
+        sendMessage(initialMessage);
+
+        if (stateMessage) {
+            navigate(location.pathname, { replace: true, state: null });
+        }
+
+        if (queryMessage) {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('q');
+            setSearchParams(nextParams, { replace: true });
+        }
+    }, [location.pathname, location.state, navigate, loading, searchParams, sendMessage, setSearchParams]);
+
     const handleChipClick = (path) => {
-        window.location.href = path;
+        navigate(path);
     };
 
     const showEmpty = messages.length === 0 && !loading;

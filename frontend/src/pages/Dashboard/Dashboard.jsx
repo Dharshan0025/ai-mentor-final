@@ -43,6 +43,20 @@ function getHour() {
     return 'evening';
 }
 
+function formatDue(dateLike) {
+    if (!dateLike) return null;
+    const date = new Date(dateLike);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function daysUntil(dateLike) {
+    if (!dateLike) return null;
+    const date = new Date(dateLike);
+    if (Number.isNaN(date.getTime())) return null;
+    return Math.ceil((date - new Date()) / 864e5);
+}
+
 const BLOOM = {
     1: { label: 'Remember', color: '#6B7280' },
     2: { label: 'Understand', color: '#3B82F6' },
@@ -344,6 +358,85 @@ export default function Dashboard() {
     const riskSubs = subjects.filter(x => x.status !== 'safe');
     const activeArrears = arrears.filter(a => !a.cleared);
     const histSemKeys = Object.keys(historicalSemesters).sort((a, b) => Number(b) - Number(a));
+    const orderedSubjects = [...subjects].sort((a, b) => {
+        const statusScore = { risk: 0, watch: 1, safe: 2 };
+        const left = statusScore[a.status] ?? 3;
+        const right = statusScore[b.status] ?? 3;
+        if (left !== right) return left - right;
+        return (a.live_attendance || a.attendance || 100) - (b.live_attendance || b.attendance || 100);
+    });
+    const orderedAssignments = [...assignments].sort((a, b) => {
+        const statusScore = { not_submitted: 0, late: 1, submitted: 2 };
+        const left = statusScore[a.submission_status] ?? 3;
+        const right = statusScore[b.submission_status] ?? 3;
+        if (left !== right) return left - right;
+        return new Date(a.due_date || '2999-12-31') - new Date(b.due_date || '2999-12-31');
+    });
+    const attendanceWatchlist = [...subjects].sort(
+        (a, b) => (a.live_attendance || a.attendance || 100) - (b.live_attendance || b.attendance || 100)
+    );
+    const actionHub = (() => {
+        // Fallback or loading state
+        if (!aiBrief || !aiBrief.primaryAction) {
+             const topRisk = orderedSubjects[0];
+             return {
+                 primaryAction: topRisk ? {
+                     eyebrow: topRisk.status === 'risk' ? 'Priority recovery' : 'Best next move',
+                     title: `Stabilize ${topRisk.name} this ${getHour()}`,
+                     text: `${topRisk.name} is your highest-leverage subject right now. Give it your first focused block today before lower-risk work.`,
+                     chips: [topRisk.code, `Bloom L${topRisk.bloomLevel || 1}`],
+                     ctas: [
+                         { label: `Tutor ${topRisk.code}`, to: '/tutor', state: { autoSubjectCode: topRisk.code, autoTopic: topRisk.name } },
+                         { label: 'Ask mentor for a rescue plan', to: '/chat', state: { initialMessage: `Build me a recovery plan for ${topRisk.name}.` } },
+                     ],
+                 } : {
+                     eyebrow: 'Momentum mode',
+                     title: 'You are clear to compound strengths',
+                     text: 'No subject is in immediate danger. Use today to lock in consistency, finish pending work early.',
+                     chips: ['All core subjects stable'],
+                     ctas: [{ label: 'Plan today', to: '/schedule' }, { label: 'Ask mentor what to focus on', to: '/chat' }],
+                 },
+                 secondary: [],
+                 wins: []
+             };
+        }
+
+        // Map from backend response
+        const mappedPrimary = {
+             eyebrow: aiBrief.primaryAction.type === 'critical' || aiBrief.primaryAction.type === 'warning' ? 'Priority Action' : 'Mission Control',
+             title: aiBrief.primaryAction.title.split('—')[0] || aiBrief.primaryAction.title,
+             text: aiBrief.primaryAction.title,
+             chips: [aiBrief.primaryAction.context].filter(Boolean),
+             ctas: [
+                 { label: aiBrief.primaryAction.actionText, to: aiBrief.primaryAction.link, state: { initialMessage: `Help me with: ${aiBrief.primaryAction.title}` } }
+             ]
+        };
+        
+        const mappedSecondary = (aiBrief.secondaryActions || []).map(action => {
+            let IconComponent;
+            switch(action.icon) {
+                 case '🚨': IconComponent = <AlertTriangle size={15} />; break;
+                 case '⚠️': IconComponent = <AlertTriangle size={15} />; break;
+                 case '📝': IconComponent = <ClipboardList size={15} />; break;
+                 case '🚀': IconComponent = <Briefcase size={15} />; break;
+                 case '📚': IconComponent = <BookOpen size={15} />; break;
+                 default: IconComponent = <MessageSquare size={15}/>; break;
+            }
+            return {
+                icon: IconComponent,
+                label: action.context || action.type,
+                title: action.title.split(':')[0] || 'Alert',
+                text: action.title,
+                cta: action.link ? { label: action.actionText, to: action.link } : null
+            };
+        });
+
+        return {
+             primaryAction: mappedPrimary,
+             secondary: mappedSecondary,
+             wins: aiBrief.momentumWins || []
+        };
+    })();
 
     // CGPA chart
     const chartData = {
@@ -409,6 +502,79 @@ export default function Dashboard() {
             </div>
 
             {/* ② Metric Strip ─────────────────────────────────────── */}
+            <div className={styles.actionGrid}>
+                <div className={styles.primaryActionCard}>
+                    <span className={styles.actionEyebrow}>{actionHub.primaryAction.eyebrow}</span>
+                    <h2 className={styles.actionTitle}>{actionHub.primaryAction.title}</h2>
+                    <p className={styles.actionText}>{actionHub.primaryAction.text}</p>
+                    <div className={styles.actionChips}>
+                        {actionHub.primaryAction.chips.map((chip, index) => (
+                            <span key={index} className={styles.actionChip}>{chip}</span>
+                        ))}
+                    </div>
+                    <div className={styles.actionButtons}>
+                        {actionHub.primaryAction.ctas.map((cta, index) => (
+                            <button
+                                key={index}
+                                type="button"
+                                className={index === 0 ? styles.primaryCta : styles.secondaryCta}
+                                onClick={() => navigate(cta.to, cta.state ? { state: cta.state } : undefined)}
+                            >
+                                {cta.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className={styles.secondaryActionRail}>
+                    {actionHub.secondary.map((item, index) => (
+                        <div key={index} className={styles.secondaryActionCard}>
+                            <div className={styles.secondaryActionHead}>
+                                <span className={styles.secondaryActionIcon}>{item.icon}</span>
+                                <span className={styles.secondaryActionLabel}>{item.label}</span>
+                            </div>
+                            <div className={styles.secondaryActionTitle}>{item.title}</div>
+                            <p className={styles.secondaryActionText}>{item.text}</p>
+                            {item.cta && (
+                                <button
+                                    type="button"
+                                    className={styles.secondaryActionButton}
+                                    onClick={() => navigate(item.cta.to, item.cta.state ? { state: item.cta.state } : undefined)}
+                                >
+                                    {item.cta.label}
+                                    <ArrowRight size={12} />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <div className={styles.momentumCard}>
+                    <SectionHeader title="Momentum" icon={<TrendingUp size={15} />} badge="Keep this going" />
+                    <div className={styles.momentumList}>
+                        {actionHub.wins.length === 0 && <p className={styles.empty}>No major momentum signals yet</p>}
+                        {actionHub.wins.map((win, index) => (
+                            <div key={index} className={styles.momentumItem}>
+                                <CheckCircle size={14} color="#10B981" />
+                                <span>{win}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        type="button"
+                        className={styles.momentumAsk}
+                        onClick={() => navigate('/chat', {
+                            state: {
+                                initialMessage: 'Given my dashboard, what should I protect and what should I improve next?',
+                            },
+                        })}
+                    >
+                        Ask for next best move
+                        <ArrowRight size={12} />
+                    </button>
+                </div>
+            </div>
+
             <div className={styles.metricStrip}>
                 {[
                     { label: 'CGPA', value: Number(s.currentCGPA).toFixed(2), sub: `→ ${Number(s.predictedCGPA).toFixed(2)} predicted`, accent: '#FF7A00', icon: <GraduationCap size={15} /> },
@@ -420,7 +586,7 @@ export default function Dashboard() {
                     <div key={i} className={styles.metricCard}>
                         <div className={styles.metricTop}>
                             <span className={styles.metricLabel}>{m.label}</span>
-                            <span style={{ color: m.accent, background: m.accent + '15', borderRadius: 8, padding: '4px 6px', display: 'flex' }}>{m.icon}</span>
+                            <span className={styles.metricIcon} style={{ color: m.accent, background: m.accent + '15' }}>{m.icon}</span>
                         </div>
                         <div className={styles.metricValue} style={{ color: m.accent }}>{m.value}</div>
                         <div className={styles.metricSub}>{m.sub}</div>
@@ -430,7 +596,7 @@ export default function Dashboard() {
 
             {/* ②b Where you stand (peer benchmarking) ───────────────────────────────── */}
             {benchmark && benchmark.peer_count > 0 && (
-                <div className="card" style={{
+                <div className={`card ${styles.benchmarkCard}`} style={{
                     padding: '12px 16px',
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -439,25 +605,25 @@ export default function Dashboard() {
                     background: 'linear-gradient(135deg, #FF7A0008 0%, #FF7A0002 100%)',
                     border: '1px solid #FF7A0020',
                 }}>
-                    <div className={styles.secTitle} style={{ margin: 0, width: '100%' }}>
+                    <div className={styles.benchmarkHeader}>
                         <Users size={15} style={{ color: '#FF7A00' }} />
-                        <h2 style={{ fontSize: '0.9rem', margin: 0 }}>Where you stand</h2>
+                        <h2>Where you stand</h2>
                         <span className={styles.secBadge}>{benchmark.peer_count} peers</span>
                     </div>
-                    <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                        <div>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-3)', display: 'block' }}>CGPA</span>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#FF7A00' }}>{benchmark.cgpa}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-2)', marginLeft: 6 }}>
+                    <div className={styles.benchmarkStats}>
+                        <div className={styles.benchmarkStat}>
+                            <span className={styles.benchmarkLabel}>CGPA</span>
+                            <span className={styles.benchmarkValue} style={{ color: '#FF7A00' }}>{benchmark.cgpa}</span>
+                            <span className={styles.benchmarkText}>
                                 Top {Math.round(100 - benchmark.cgpa_percentile)}% · Dept avg {benchmark.dept_avg_cgpa}
                                 {benchmark.cgpa_vs_avg > 0 && <span style={{ color: '#10B981' }}> (+{benchmark.cgpa_vs_avg})</span>}
                                 {benchmark.cgpa_vs_avg < 0 && <span style={{ color: '#EF4444' }}> ({benchmark.cgpa_vs_avg})</span>}
                             </span>
                         </div>
-                        <div>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-3)', display: 'block' }}>Attendance</span>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: benchmark.attendance >= 75 ? '#10B981' : '#F59E0B' }}>{benchmark.attendance}%</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-2)', marginLeft: 6 }}>
+                        <div className={styles.benchmarkStat}>
+                            <span className={styles.benchmarkLabel}>Attendance</span>
+                            <span className={styles.benchmarkValue} style={{ color: benchmark.attendance >= 75 ? '#10B981' : '#F59E0B' }}>{benchmark.attendance}%</span>
+                            <span className={styles.benchmarkText}>
                                 Top {Math.round(100 - benchmark.attendance_percentile)}% · Dept avg {benchmark.dept_avg_attendance}%
                                 {benchmark.attendance_vs_avg > 0 && <span style={{ color: '#10B981' }}> (+{benchmark.attendance_vs_avg})</span>}
                                 {benchmark.attendance_vs_avg < 0 && <span style={{ color: '#EF4444' }}> ({benchmark.attendance_vs_avg})</span>}
@@ -517,7 +683,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Quick action: jump to chat with today's mission */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                    <div className={styles.aiBriefActionRow}>
                         <button
                             type="button"
                             onClick={() => navigate('/chat', {
@@ -525,18 +691,7 @@ export default function Dashboard() {
                                     initialMessage: "Given my current profile, alerts, and upcoming exams, what should I focus on today?"
                                 }
                             })}
-                            style={{
-                                fontSize: '0.78rem',
-                                padding: '4px 10px',
-                                borderRadius: 999,
-                                border: '1px solid #FF7A0033',
-                                background: '#FFFAF5',
-                                color: '#FF7A00',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                cursor: 'pointer',
-                            }}
+                            className={styles.aiBriefAction}
                         >
                             <Send size={12} />
                             Ask “What should I do today?”
@@ -560,16 +715,27 @@ export default function Dashboard() {
             {/* ④ Subject Intelligence Grid ────────────────────────── */}
             <div className="card" style={{ padding: 'var(--sp-4)' }}>
                 <SectionHeader
-                    title={`Current Semester (Sem ${s.semester}) — ${subjects.length} Subjects`}
+                    title={`Current Semester (Sem ${s.semester}) — ${orderedSubjects.length} Subjects`}
                     icon={<BookOpen size={15} />}
                     badge={riskSubs.length > 0 ? `${riskSubs.length} at risk` : '✓ All safe'}
-                    extra={<Link to="/prediction" className={styles.viewAll}>Predict <ArrowRight size={12} /></Link>}
+                    extra={
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            <button 
+                                className={styles.secondaryActionButton} 
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => navigate('/chat', { state: { initialMessage: "How should I structure my study plan for this semester's subjects?" } })}
+                            >
+                                Study Plan <ArrowRight size={12} />
+                            </button>
+                            <Link to="/prediction" className={styles.viewAll}>Predict <ArrowRight size={12} /></Link>
+                        </div>
+                    }
                 />
-                {subjects.length === 0
+                {orderedSubjects.length === 0
                     ? <p className={styles.empty}>No subjects this semester</p>
                     : (
                         <div className={styles.subjectGrid}>
-                            {subjects.map((sub, i) => <SubjectCard key={i} sub={sub} />)}
+                            {orderedSubjects.map((sub, i) => <SubjectCard key={i} sub={sub} />)}
                         </div>
                     )
                 }
@@ -583,6 +749,15 @@ export default function Dashboard() {
                         title="Assignments"
                         icon={<ClipboardList size={15} />}
                         badge={`Sem ${s.semester}`}
+                        extra={
+                           <button 
+                                className={styles.secondaryActionButton} 
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => navigate('/schedule')}
+                            >
+                                Submit & Plan <ArrowRight size={12} />
+                            </button>
+                        }
                     />
                     <div className={styles.assignTabs}>
                         {['submitted', 'late', 'not_submitted'].map(tab => {
@@ -596,9 +771,9 @@ export default function Dashboard() {
                         })}
                     </div>
                     <div className={styles.assignList}>
-                        {assignments.length === 0
+                        {orderedAssignments.length === 0
                             ? <p className={styles.empty}>No assignments this semester</p>
-                            : assignments.map((a, i) => <AssignRow key={i} a={a} />)
+                            : orderedAssignments.map((a, i) => <AssignRow key={i} a={a} />)
                         }
                     </div>
                     <div className={styles.progressBarWrap}>
@@ -609,9 +784,22 @@ export default function Dashboard() {
 
                 {/* Attendance per subject */}
                 <div className={`card ${styles.attCard}`}>
-                    <SectionHeader title="Attendance per Subject" icon={<Users size={15} />} badge="75% threshold" />
+                    <SectionHeader 
+                        title="Attendance per Subject" 
+                        icon={<Users size={15} />} 
+                        badge="75% threshold" 
+                        extra={
+                            <button 
+                                className={styles.secondaryActionButton} 
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => navigate('/chat', { state: { initialMessage: "How can I improve my low attendance subjects before exams?" } })}
+                            >
+                                Get Recovery Plan <ArrowRight size={12} />
+                            </button>
+                        }
+                    />
                     <div className={styles.attList}>
-                        {subjects.map((sub, i) => {
+                        {attendanceWatchlist.map((sub, i) => {
                             const att = Number(sub.live_attendance || sub.attendance || 0);
                             const color = att < 75 ? '#EF4444' : att < 85 ? '#F59E0B' : '#10B981';
                             return (
@@ -625,7 +813,7 @@ export default function Dashboard() {
                                 </div>
                             );
                         })}
-                        {subjects.length === 0 && <p className={styles.empty}>No subjects</p>}
+                        {attendanceWatchlist.length === 0 && <p className={styles.empty}>No subjects</p>}
                     </div>
                 </div>
             </div>
@@ -633,7 +821,20 @@ export default function Dashboard() {
             {/* ⑥ Historical Semester Records ─────────────────────────── */}
             {histSemKeys.length > 0 && (
                 <div className="card" style={{ padding: 'var(--sp-4)' }}>
-                    <SectionHeader title="Previous Semester Records" icon={<Eye size={15} />} badge={`${histSemKeys.length} sems`} />
+                    <SectionHeader 
+                        title="Previous Semester Records" 
+                        icon={<Eye size={15} />} 
+                        badge={`${histSemKeys.length} sems`} 
+                        extra={
+                            <button 
+                                className={styles.secondaryActionButton} 
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => navigate('/chat', { state: { initialMessage: "Can you analyze my performance trends and marks across my previous semesters?" } })}
+                            >
+                                Analyze Trends <ArrowRight size={12} />
+                            </button>
+                        }
+                    />
                     <div className={styles.histList}>
                         {histSemKeys.map(sem => (
                             <HistoricalSem
@@ -653,6 +854,15 @@ export default function Dashboard() {
                         title={`Next Semester Preview (Sem ${(s.semester || 0) + 1})`}
                         icon={<ChevronRight size={15} />}
                         badge={`${nextSemSubjects.length} subjects`}
+                        extra={
+                            <button 
+                                className={styles.secondaryActionButton} 
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => navigate('/chat', { state: { initialMessage: "What should I know to prepare for next semester's subjects?" } })}
+                            >
+                                Prep Advice <ArrowRight size={12} />
+                            </button>
+                        }
                     />
                     <div className={styles.nextSemGrid}>
                         {nextSemSubjects.map((sub, i) => {
@@ -681,7 +891,20 @@ export default function Dashboard() {
             <div className={styles.row3}>
                 {/* Activities */}
                 <div className={`card ${styles.actCard}`}>
-                    <SectionHeader title="Activities" icon={<Award size={15} />} badge={`${s.certCount || 0} certified`} />
+                    <SectionHeader 
+                        title="Activities" 
+                        icon={<Award size={15} />} 
+                        badge={`${s.certCount || 0} certified`} 
+                        extra={
+                            <button 
+                                className={styles.secondaryActionButton} 
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                onClick={() => navigate('/chat', { state: { initialMessage: "I want to log a new extracurricular activity or certification." } })}
+                            >
+                                Log Activity <ArrowRight size={12} />
+                            </button>
+                        }
+                    />
                     <div className={styles.actList}>
                         {activities.length === 0 && <p className={styles.empty}>No activities recorded</p>}
                         {activities.map((a, i) => (
@@ -707,6 +930,17 @@ export default function Dashboard() {
                         title="Arrear History"
                         icon={<XCircle size={15} />}
                         badge={activeArrears.length > 0 ? `${activeArrears.length} Active` : '✓ Clear'}
+                        extra={
+                            activeArrears.length > 0 && (
+                                <button 
+                                    className={styles.secondaryActionButton} 
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                    onClick={() => navigate('/chat', { state: { initialMessage: "Help me create a study plan to clear my active arrears." } })}
+                                >
+                                    Clear Arrears <ArrowRight size={12} />
+                                </button>
+                            )
+                        }
                     />
                     {arrears.length === 0
                         ? <p className={styles.empty}>No arrears — clean record! 🎉</p>
@@ -731,7 +965,19 @@ export default function Dashboard() {
                 {/* Library + Mentoring */}
                 <div className={styles.stackCol}>
                     <div className={`card ${styles.libraryCard}`}>
-                        <SectionHeader title="Library" icon={<BookMarked size={15} />} />
+                        <SectionHeader 
+                            title="Library" 
+                            icon={<BookMarked size={15} />} 
+                            extra={
+                                <button 
+                                    className={styles.secondaryActionButton} 
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                    onClick={() => navigate('/chat', { state: { initialMessage: "I need to renew my library books or find new ones related to my courses." } })}
+                                >
+                                    Manage <ArrowRight size={12} />
+                                </button>
+                            }
+                        />
                         {library.length === 0
                             ? <p className={styles.empty}>No books issued</p>
                             : library.map((b, i) => {
@@ -756,7 +1002,20 @@ export default function Dashboard() {
 
                     {mentoring.length > 0 && (
                         <div className={`card ${styles.mentorCard}`}>
-                            <SectionHeader title="Mentoring" icon={<MessageSquare size={15} />} badge={mentoring.length} />
+                            <SectionHeader 
+                                title="Mentoring" 
+                                icon={<MessageSquare size={15} />} 
+                                badge={mentoring.length} 
+                                extra={
+                                    <button 
+                                        className={styles.secondaryActionButton} 
+                                        style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                        onClick={() => navigate('/chat', { state: { initialMessage: "I'd like to schedule a meeting with my mentor to discuss my academic progress." } })}
+                                    >
+                                        Schedule <ArrowRight size={12} />
+                                    </button>
+                                }
+                            />
                             {mentoring.slice(0, 2).map((m, i) => (
                                 <div key={i} className={styles.mentorRow}>
                                     <span className={styles.mentorDate}>
@@ -780,6 +1039,17 @@ export default function Dashboard() {
                         title="Fee Status"
                         icon={<IndianRupee size={15} />}
                         badge={s.feeDue > 0 ? `₹${s.feeDue.toLocaleString('en-IN')} due` : '✓ Paid up'}
+                        extra={
+                            s.feeDue > 0 && (
+                                <button 
+                                    className={styles.secondaryActionButton} 
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                    onClick={() => navigate('/chat', { state: { initialMessage: "I need to view details about my pending fees and payment options." } })}
+                                >
+                                    Pay Now <ArrowRight size={12} />
+                                </button>
+                            )
+                        }
                     />
                     <div className={styles.feeGrid}>
                         {feeRecords.map((f, i) => {
@@ -814,7 +1084,18 @@ export default function Dashboard() {
                     <SectionHeader
                         title="Placement Status"
                         icon={<Briefcase size={15} />}
-                        extra={<Link to="/career" className={styles.viewAll}>Career <ArrowRight size={12} /></Link>}
+                        extra={
+                            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                <button 
+                                    className={styles.secondaryActionButton} 
+                                    style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: 0 }}
+                                    onClick={() => navigate('/chat', { state: { initialMessage: "How should I prepare for my upcoming placement drives?" } })}
+                                >
+                                    Prep Strategies <ArrowRight size={12} />
+                                </button>
+                                <Link to="/career" className={styles.viewAll}>Career <ArrowRight size={12} /></Link>
+                            </div>
+                        }
                     />
                     <div className={styles.placementRow_}>
                         {/* Eligibility checklist */}

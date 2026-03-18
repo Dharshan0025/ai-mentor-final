@@ -81,6 +81,62 @@
     margin-top: 4px;
 }
 
+.heroCGPAArrear {
+    font-size: 0.75rem;
+    color: var(--risk);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.heroId {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    margin-top: 2px;
+    font-family: var(--font-mono, monospace);
+}
+
+.loadingWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-3);
+    padding: var(--sp-10) 0;
+}
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border-light);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingText {
+    font-size: 0.875rem;
+    color: var(--text-3);
+}
+
+.errorCard {
+    padding: var(--sp-5);
+    color: var(--risk);
+    font-size: 0.9375rem;
+}
+
+.emptyNote {
+    font-size: 0.875rem;
+    color: var(--text-3);
+    padding: var(--sp-4) var(--sp-2);
+    text-align: center;
+}
+
 .statChips {
     display: flex;
     gap: var(--sp-2);

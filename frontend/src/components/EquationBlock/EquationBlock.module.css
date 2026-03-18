@@ -1,0 +1,38 @@
+/* EquationBlock — KaTeX rendered equations — Light theme */
+
+.equation {
+    font-family: 'KaTeX_Math', 'Computer Modern', serif;
+    color: var(--text-1);
+}
+
+.inline {
+    display: inline;
+    padding: 0 0.1rem;
+}
+
+.block {
+    display: block;
+    text-align: center;
+    margin: 0.75rem 0;
+    padding: 0.75rem 1rem;
+    background: var(--surface-2);
+    border-radius: var(--r-md);
+    border-left: 3px solid var(--accent);
+    overflow-x: auto;
+}
+
+/* KaTeX overrides for light theme */
+.equation :global(.katex) {
+    color: var(--text-1);
+    font-size: 1em;
+}
+
+.equation :global(.katex-display) {
+    margin: 0;
+}
+
+.equation :global(.katex-error) {
+    color: var(--risk);
+    font-size: 0.82rem;
+    font-family: monospace;
+}

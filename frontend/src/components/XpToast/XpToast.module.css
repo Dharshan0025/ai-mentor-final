@@ -1,0 +1,97 @@
+.toast {
+    position: fixed;
+    bottom: 88px;
+    right: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    z-index: 9999;
+    animation: xpSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+        xpFadeOut 0.4s ease 2.2s forwards;
+    pointer-events: none;
+}
+
+.xpPill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #FF7A00, #FF9E3D);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 999px;
+    box-shadow: 0 6px 20px rgba(255, 122, 0, 0.45);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.xpAmount {
+    font-size: 1.05rem;
+}
+
+.bolt {
+    font-size: 1rem;
+    animation: pulseBolt 0.5s ease infinite alternate;
+}
+
+.action {
+    font-size: 0.71rem;
+    font-weight: 600;
+    color: #FF7A00;
+    text-align: right;
+    letter-spacing: 0.03em;
+}
+
+.badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 122, 0, 0.08);
+    border: 1px solid rgba(255, 122, 0, 0.2);
+    border-radius: 999px;
+    padding: 4px 12px;
+}
+
+.badge {
+    font-size: 1.1rem;
+}
+
+.badgeLabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #FF7A00;
+}
+
+@keyframes xpSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.88);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes xpFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+}
+
+@keyframes pulseBolt {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.25);
+    }
+}

@@ -18,6 +18,18 @@ export default function useAlertStream() {
 
     const token = localStorage.getItem('ai_mentor_token');
 
+    const bootstrapAlerts = useCallback(async () => {
+        try {
+            const res = await fetch(`${BASE}/student/me/alerts`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            setAlerts(data.alerts || []);
+            setUnreadCount(data.unread_count || 0);
+        } catch { /* silent */ }
+    }, [token]);
+
     const connect = useCallback(() => {
         if (!token) return;
 
@@ -49,6 +61,7 @@ export default function useAlertStream() {
 
             es.onopen = () => {
                 retryRef.current = 0;
+                bootstrapAlerts();
             };
 
             es.onerror = () => {
@@ -63,25 +76,14 @@ export default function useAlertStream() {
             // SSE not supported — fall back to polling
             startPolling();
         }
-    }, [token]);
+    }, [bootstrapAlerts, token]);
 
     const startPolling = useCallback(() => {
         if (fallbackRef.current) return;
-        const poll = async () => {
-            try {
-                const res = await fetch(`${BASE}/student/me/alerts`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setAlerts(data.alerts || []);
-                    setUnreadCount(data.unread_count || 0);
-                }
-            } catch { /* silent */ }
-        };
+        const poll = async () => bootstrapAlerts();
         poll();
         fallbackRef.current = setInterval(poll, 30_000);
-    }, [token]);
+    }, [bootstrapAlerts]);
 
     useEffect(() => {
         connect();

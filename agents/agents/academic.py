@@ -75,10 +75,10 @@ async def _get_rag_context(message: str, *, exam_focus: bool = False) -> str:
     If exam_focus=True, prefer past exam papers (doc_type='exam_paper').
     """
     try:
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001", 
-            google_api_key=settings.google_api_key
+        from langchain_aws import BedrockEmbeddings
+        embeddings = BedrockEmbeddings(
+            model_id="amazon.titan-embed-text-v2:0",
+            region_name=settings.aws_region,
         )
         # Run sync embed in a thread
         import asyncio
@@ -232,10 +232,10 @@ Exam in: {profile.get('examDays', 'N/A')} days
         strong = learning_dna.get("strong_topics") or []
 
         weak_str = ", ".join(
-            str(w.get("topic") or w.get("subject_code") or "") for w in weak[:3]
+            w if isinstance(w, str) else str(w.get("topic") or w.get("subject_code") or "") for w in weak[:3]
         ) or "None logged yet"
         strong_str = ", ".join(
-            str(s.get("topic") or s.get("subject_code") or "") for s in strong[:3]
+            s if isinstance(s, str) else str(s.get("topic") or s.get("subject_code") or "") for s in strong[:3]
         ) or "None logged yet"
 
         dna_block = f"""

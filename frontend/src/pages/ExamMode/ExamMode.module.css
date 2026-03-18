@@ -1,0 +1,378 @@
+.page {
+    min-height: 100vh;
+    background: var(--bg, #F4F1EC);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+/* ── Config Card ─────────────────────────────── */
+.configCard,
+.quizCard,
+.resultCard {
+    background: var(--surface, #FFFDF7);
+    border: 1px solid var(--border, #E8E0D5);
+    border-radius: 18px;
+    padding: 32px 36px;
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+}
+
+.configHeader {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.headerIcon {
+    color: var(--accent, #FF7A00);
+}
+
+.configTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-1, #1C1410);
+    margin: 0;
+}
+
+.configSub {
+    font-size: 0.83rem;
+    color: var(--text-3, #9B8F84);
+    margin: 2px 0 0;
+}
+
+.configSection {
+    margin-bottom: 22px;
+}
+
+.configLabel {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-2, #6B5E54);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+}
+
+.subjectGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.subjectBtn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text-2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.subjectBtn.active,
+.subjectBtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(255, 122, 0, 0.06);
+}
+
+.pillRow {
+    display: flex;
+    gap: 8px;
+}
+
+.pill {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    color: var(--text-2);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.pillActive {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+.error {
+    color: var(--risk, #E53935);
+    font-size: 0.78rem;
+    margin: 8px 0;
+}
+
+.startBtn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent, #FF7A00);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.startBtn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    opacity: 0.92;
+}
+
+.startBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Quiz Card ──────────────────────────────────── */
+.quizHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.qProgress {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-3);
+}
+
+.timer {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-2);
+    padding: 5px 12px;
+    background: var(--bg);
+    border-radius: 999px;
+    border: 1px solid var(--border);
+}
+
+.timerWarn {
+    color: var(--risk, #E53935);
+    border-color: var(--risk);
+    animation: timerPulse 1s ease infinite;
+}
+
+@keyframes timerPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}
+
+.progressBar {
+    height: 5px;
+    background: var(--border);
+    border-radius: 999px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.question {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-1);
+    line-height: 1.55;
+    margin-bottom: 22px;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.88rem;
+    color: var(--text-1);
+    transition: all 0.15s;
+}
+
+.option:hover {
+    border-color: var(--accent);
+    background: rgba(255, 122, 0, 0.05);
+}
+
+.optionLetter {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    color: var(--text-2);
+}
+
+.skipBtn {
+    background: none;
+    border: none;
+    font-size: 0.78rem;
+    color: var(--text-3);
+    cursor: pointer;
+    float: right;
+}
+
+/* ── Result Card ─────────────────────────────── */
+.scoreRing {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+}
+
+.ringsvg {
+    width: 100%;
+    height: 100%;
+}
+
+.scoreLabel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-1);
+}
+
+.resultTitle {
+    font-size: 1.3rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--text-1);
+    margin: 0 0 6px;
+}
+
+.resultSub {
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-3);
+    margin-bottom: 22px;
+}
+
+.reviewList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 22px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.reviewItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+
+.correct {
+    background: rgba(16, 185, 129, 0.07);
+    color: var(--safe, #10B981);
+}
+
+.wrong {
+    background: rgba(229, 57, 53, 0.06);
+    color: var(--risk, #E53935);
+}
+
+.reviewContent {
+    flex: 1;
+}
+
+.reviewQ {
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0 0 3px;
+}
+
+.reviewAns {
+    font-size: 0.74rem;
+    color: var(--text-3);
+    margin: 0;
+}
+
+.resultBtns {
+    display: flex;
+    gap: 12px;
+}
+
+.retryBtn,
+.homeBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.retryBtn {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    color: var(--text-1);
+}
+
+.homeBtn {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+}
+
+.retryBtn:hover,
+.homeBtn:hover {
+    opacity: 0.85;
+}

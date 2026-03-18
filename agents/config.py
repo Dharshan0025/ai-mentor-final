@@ -2,24 +2,23 @@
 AI-Mentor Agent Service — Configuration
 Centralized settings management via pydantic-settings
 """
-from pathlib import Path
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from dotenv import load_dotenv
 
-# Always resolve .env relative to THIS file, not the CWD
-_ENV_FILE = Path(__file__).parent / ".env"
+load_dotenv()
 
 
 class Settings(BaseSettings):
     groq_api_key: str = ""
-    groq_model: str = "llama-3.3-70b-versatile"
-    # Bedrock (Claude — primary LLM for AI brief + tutor)
+    groq_model: str = "openai/gpt-oss-20b"
+    # Bedrock (Global Inference Profile — ChatGPT 120b)
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
     aws_bearer_token_bedrock: str = ""  # Short-term bearer token (preferred)
     bedrock_api_key: str = ""           # Alias / legacy field
     aws_region: str = "us-east-1"
-    bedrock_model_id: str = "anthropic.claude-haiku-4-5"
+    bedrock_model_id: str = "openai.gpt-oss-120b-1"
 
     # Database — Supabase
     database_url: str = "postgresql://postgres:password@localhost:5432/ai_mentor"
@@ -44,7 +43,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     class Config:
-        env_file = str(_ENV_FILE)
+        env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
 

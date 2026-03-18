@@ -1,151 +1,38 @@
 """
 AI-Mentor — Database Service
-Uses supabase-py REST client to talk to Supabase over HTTPS.
-This bypasses asyncpg TCP which fails on IPv4-only networks where
-Supabase direct connections resolve to IPv6 only.
+Async connection pool to Supabase (PostgreSQL).
+Use this module for all DB queries in agents and the FastAPI app.
 
 Usage:
     from db import db
     student = await db.get_student_by_college_id("22CSBS001")
 """
 import asyncio
+import asyncpg
 import logging
-import re
-import json
-from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Optional, Any
-
-from supabase import create_client, Client
+from typing import Optional
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Supabase client (singleton) ───────────────────────────────────────────────
-_sb_client: Optional[Client] = None
+# ── Connection Pool (singleton) ───────────────────────────────────────────────
+_pool: Optional[asyncpg.Pool] = None
 
 
-def _get_supabase() -> Client:
-    global _sb_client
-    if _sb_client is None:
-        _sb_client = create_client(settings.supabase_url, settings.supabase_anon_key)
-        logger.info("✅ Supabase REST client initialised")
-    return _sb_client
-
-
-# ── asyncpg-compatible shim ───────────────────────────────────────────────────
-# All existing query code in Database uses:
-#   pool = await get_pool()
-#   async with pool.acquire() as conn:
-#       rows = await conn.fetch(sql, *args)
-# The shim below satisfies that interface by routing SQL through
-# the Supabase REST /rest/v1/rpc endpoint.
-
-import httpx as _httpx
-
-def _build_rpc_url() -> str:
-    base = settings.supabase_url.rstrip("/")
-    return f"{base}/rest/v1/rpc/exec_sql"
-
-
-def _rpc_headers() -> dict:
-    return {
-        "apikey": settings.supabase_anon_key,
-        "Authorization": f"Bearer {settings.supabase_anon_key}",
-        "Content-Type": "application/json",
-    }
-
-
-def _convert_placeholders(sql: str) -> str:
-    """Convert asyncpg $1,$2,... to {p0},{p1},... for RPC substitution."""
-    def replace(m):
-        return f"{{p{int(m.group(1))-1}}}"
-    return re.sub(r'\$(\d+)', replace, sql)
-
-
-class _FakeRecord(dict):
-    """Dict subclass that also supports attribute-style access like asyncpg.Record."""
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            return list(self.values())[key]
-        return super().__getitem__(key)
-
-    def get(self, key, default=None):
-        return super().get(key, default)
-
-
-class _FakeConnection:
-    """Mimics asyncpg.Connection — routes all queries over HTTPS via Supabase RPC."""
-
-    async def _execute_rpc(self, sql: str, args: tuple) -> list[dict]:
-        """Call exec_sql RPC with SQL + positional args."""
-        # Replace $1,$2 placeholders with named params p0,p1,...
-        param_sql = sql
-        params_dict = {}
-        for i, val in enumerate(args):
-            placeholder = f"${i+1}"
-            named = f":p{i}"
-            param_sql = param_sql.replace(placeholder, named, 1)
-            params_dict[f"p{i}"] = val
-
-        payload = {"query": param_sql, "params": json.dumps(params_dict)}
-
-        async with _httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                _build_rpc_url(),
-                headers=_rpc_headers(),
-                json=payload,
-            )
-
-        if resp.status_code >= 400:
-            raise Exception(f"RPC error {resp.status_code}: {resp.text[:200]}")
-
-        data = resp.json()
-        if isinstance(data, list):
-            return [_FakeRecord(r) for r in data]
-        if isinstance(data, dict):
-            return [_FakeRecord(data)]
-        return []
-
-    async def fetch(self, sql: str, *args) -> list[_FakeRecord]:
-        return await self._execute_rpc(sql, args)
-
-    async def fetchrow(self, sql: str, *args) -> Optional[_FakeRecord]:
-        rows = await self._execute_rpc(sql, args)
-        return rows[0] if rows else None
-
-    async def fetchval(self, sql: str, *args) -> Any:
-        row = await self.fetchrow(sql, *args)
-        if row is None:
-            return None
-        return list(row.values())[0]
-
-    async def execute(self, sql: str, *args) -> str:
-        await self._execute_rpc(sql, args)
-        return "OK"
-
-
-class _FakePool:
-    """Mimics asyncpg.Pool with acquire() context manager."""
-
-    @asynccontextmanager
-    async def acquire(self):
-        yield _FakeConnection()
-
-
-_pool: Optional[_FakePool] = None
-
-
-async def get_pool() -> _FakePool:
-    """Return the shared fake pool backed by supabase-py over HTTPS."""
+async def get_pool() -> asyncpg.Pool:
+    """Return the shared connection pool, creating it on first call."""
     global _pool
     if _pool is None:
         try:
-            # Warm-up: verify client can reach Supabase
-            sb = _get_supabase()
-            resp = sb.table("students").select("college_id").limit(1).execute()
-            logger.info("✅ Supabase database pool established (HTTPS mode)")
-            _pool = _FakePool()
+            _pool = await asyncpg.create_pool(
+                dsn=settings.database_url,
+                min_size=2,
+                max_size=10,
+                command_timeout=30,
+                ssl="require",             # Supabase requires SSL
+            )
+            logger.info("✅ Supabase database pool established")
         except Exception as e:
             logger.error(f"❌ DB pool creation failed: {e}")
             raise
@@ -153,11 +40,12 @@ async def get_pool() -> _FakePool:
 
 
 async def close_pool():
-    """No-op for HTTP client (no persistent connections)."""
-    global _pool, _sb_client
-    _pool = None
-    _sb_client = None
-    logger.info("DB client reset")
+    """Gracefully close the pool on app shutdown."""
+    global _pool
+    if _pool:
+        await _pool.close()
+        _pool = None
+        logger.info("DB pool closed")
 
 
 # ── Student Queries ───────────────────────────────────────────────────────────
@@ -1471,6 +1359,197 @@ class Database:
         except Exception as e:
             logger.warning(f"authenticate_student failed: {e}")
             return None
+
+
+    # ════════════════════════════════════════════════════════════════════════
+    # V1 TEACHING CORE — Lesson Completion, Confusion, Spaced Repetition
+    # ════════════════════════════════════════════════════════════════════════
+
+    async def record_lesson_completion(
+        self,
+        student_id: str,
+        subject_code: str,
+        topic: str,
+        steps_completed: int,
+        bloom_level: int,
+    ) -> None:
+        """
+        Write back after a tutor lesson ends.
+        Upserts into bloom_progress to track last_reviewed_at for spaced repetition.
+        Uses student college_id to look up the DB int id.
+        """
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                student_row = await conn.fetchrow(
+                    "SELECT id FROM students WHERE college_id = $1", student_id
+                )
+                if not student_row:
+                    return
+                db_id = student_row["id"]
+
+                await conn.execute(
+                    """
+                    INSERT INTO bloom_progress
+                        (student_id, subject_code, topic, bloom_level, achieved, quiz_score, updated_at)
+                    VALUES ($1, $2, $3, $4, false, 0, NOW())
+                    ON CONFLICT (student_id, subject_code, topic)
+                    DO UPDATE SET
+                        bloom_level = GREATEST(bloom_progress.bloom_level, $4),
+                        updated_at  = NOW()
+                    """,
+                    db_id, subject_code, topic, bloom_level,
+                )
+                logger.info(
+                    f"Lesson completion recorded: student={student_id} "
+                    f"subject={subject_code} topic={topic} steps={steps_completed}"
+                )
+        except Exception as e:
+            logger.warning(f"record_lesson_completion failed (non-fatal): {e}")
+
+    async def flag_confusion_topic(
+        self,
+        student_id: str,
+        topic_name: str,
+        subject_code: str,
+    ) -> None:
+        """
+        Flag a topic as confusing in the student's Learning DNA weak_topics list.
+        Called when the student asks the same concept 3+ times in a session.
+        """
+        try:
+            entry = {"topic": topic_name, "subject_code": subject_code, "flagged": "confusion"}
+            await self.update_learning_dna(
+                student_college_id=student_id,
+                weak_topics_append=[entry],
+            )
+            logger.info(f"Confusion flagged: student={student_id} topic={topic_name}")
+        except Exception as e:
+            logger.warning(f"flag_confusion_topic failed (non-fatal): {e}")
+
+    async def get_due_topics(self, student_id: str) -> list[dict]:
+        """
+        Spaced Repetition — SM-2 inspired query.
+        Returns topics due for review based on bloom_progress.updated_at.
+        Spacing intervals: 1d → 3d → 7d → 14d → 30d based on bloom_level.
+        """
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                student_row = await conn.fetchrow(
+                    "SELECT id FROM students WHERE college_id = $1", student_id
+                )
+                if not student_row:
+                    return []
+                db_id = student_row["id"]
+
+                rows = await conn.fetch(
+                    """
+                    SELECT
+                        subject_code,
+                        COALESCE(topic, '') AS topic,
+                        bloom_level,
+                        achieved,
+                        avg_score,
+                        updated_at,
+                        NOW() - updated_at AS time_since
+                    FROM bloom_progress
+                    WHERE student_id = $1
+                      AND updated_at IS NOT NULL
+                    ORDER BY updated_at ASC
+                    LIMIT 20
+                    """,
+                    db_id,
+                )
+
+            # SM-2 interval schedule based on bloom_level
+            # Bloom 1-2 → review after 1d, Bloom 3-4 → 3d, Bloom 5-6 → 7d
+            due_topics = []
+            for r in rows:
+                bloom = int(r["bloom_level"] or 1)
+                if bloom <= 2:
+                    interval_days = 1
+                elif bloom <= 4:
+                    interval_days = 3
+                else:
+                    interval_days = 7
+
+                age_seconds = r["time_since"].total_seconds() if r["time_since"] else 0
+                age_days = age_seconds / 86400
+                due_in_days = max(0, interval_days - age_days)
+                is_due = age_days >= interval_days
+
+                if is_due:
+                    due_topics.append({
+                        "subject_code":  r["subject_code"],
+                        "topic":         r["topic"],
+                        "bloom_level":   bloom,
+                        "achieved":      bool(r["achieved"]),
+                        "avg_score":     float(r["avg_score"] or 0),
+                        "last_reviewed": str(r["updated_at"]) if r["updated_at"] else None,
+                        "due_in_days":   round(due_in_days, 1),
+                        "priority":      "high" if age_days > interval_days * 2 else "normal",
+                    })
+
+            return due_topics[:5]  # Top 5 most overdue
+
+        except Exception as e:
+            logger.warning(f"get_due_topics failed (non-fatal): {e}")
+            return []
+
+    async def update_checkpoint_result(
+        self,
+        student_id: str,
+        subject_code: str,
+        topic: str,
+        correct: bool,
+        bloom_level: int,
+    ) -> None:
+        """
+        After a checkpoint answer, update bloom_progress and Learning DNA.
+        Correct → achieves current bloom level, increments correct_answers.
+        Wrong   → flags weak topic in Learning DNA.
+        """
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                student_row = await conn.fetchrow(
+                    "SELECT id FROM students WHERE college_id = $1", student_id
+                )
+                if not student_row:
+                    return
+                db_id = student_row["id"]
+
+                if correct:
+                    await conn.execute(
+                        """
+                        INSERT INTO bloom_progress
+                            (student_id, subject_code, topic, bloom_level, achieved, quiz_score, updated_at)
+                        VALUES ($1, $2, $3, $4, true, 8, NOW())
+                        ON CONFLICT (student_id, subject_code, topic)
+                        DO UPDATE SET
+                            achieved    = true,
+                            bloom_level = GREATEST(bloom_progress.bloom_level, $4),
+                            quiz_score  = 8,
+                            updated_at  = NOW()
+                        """,
+                        db_id, subject_code, topic, bloom_level,
+                    )
+                    await self.update_learning_dna(
+                        student_college_id=student_id,
+                        questions_delta=1,
+                        correct_delta=1,
+                        strong_topics_append=[{"topic": topic, "subject_code": subject_code}],
+                    )
+                else:
+                    await self.update_learning_dna(
+                        student_college_id=student_id,
+                        questions_delta=1,
+                        weak_topics_append=[{"topic": topic, "subject_code": subject_code}],
+                    )
+
+        except Exception as e:
+            logger.warning(f"update_checkpoint_result failed (non-fatal): {e}")
 
 
 # Singleton
