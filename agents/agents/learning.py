@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import settings
 from db import db
+from mentor_strategy import build_mentor_brief
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +65,12 @@ async def learning_node(state: dict) -> dict:
     profile = state.get("student_profile", {})
     student_id = state.get("student_id")
 
-    learning_dna = None
+    learning_dna = state.get("learning_dna")
     if student_id:
         try:
             # Fetch or auto-create the student's learning DNA
-            learning_dna = await db.get_learning_dna(student_id)
+            if learning_dna is None:
+                learning_dna = await db.get_learning_dna(student_id)
             # Record an observation of the active hour (for peak_hour)
             hour = datetime.now().hour
             await db.update_learning_dna(
@@ -81,6 +83,9 @@ async def learning_node(state: dict) -> dict:
     system_prompt = LEARNING_SYSTEM.format(
         learning_profile=_format_learning_profile(profile, state["message"], learning_dna)
     )
+    mentor_brief = build_mentor_brief(state)
+    if mentor_brief:
+        system_prompt += "\n\nMentor delivery brief:\n" + mentor_brief
 
     messages = [SystemMessage(content=system_prompt)]
     for msg in state.get("history", [])[-4:]:
@@ -226,5 +231,4 @@ Rules:
         "questions": questions,
         "total": len(questions),
     }
-
 

@@ -1,0 +1,193 @@
+/* ChatWidgets — Generative UI cards for the chat interface */
+
+.card {
+    background: var(--surface); box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
+    padding: 1.25rem 1.5rem;
+    margin-top: 0.75rem;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.cardHeader span { font-size: 1.25rem; }
+
+.cardHeader h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    letter-spacing: 0.02em;
+}
+
+/* Schedule ------------------------------------------------------------------ */
+.scheduleGrid {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+}
+
+.dayBlock {
+    min-width: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.dayLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border, #333333);
+}
+
+.daySlots { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.slot {
+    display: flex;
+    flex-direction: column;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0;
+    background: var(--surface-2); border: 2px solid var(--border, #333333);
+    border-left: 3px solid var(--border, #333333);
+}
+
+.slot_risk { border-left-color: #ef4444; }
+.slot_watch { border-left-color: #f59e0b; }
+.slot_safe { border-left-color: #22c55e; }
+
+.slotSubject { font-size: 0.72rem; font-weight: 600; color: #e2e8f0; }
+.slotTime { font-size: 0.65rem; color: #64748b; margin-top: 0.1rem; }
+
+/* Prediction ---------------------------------------------------------------- */
+.predictionRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.predStat { text-align: center; }
+
+.predValue {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    line-height: 1;
+}
+
+.predLabel {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.predArrow {
+    font-size: 1.5rem;
+    color: #94a3b8;
+}
+
+.predDiff {
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0;
+    background-color: var(--surface-2, #1E1E1E);
+}
+
+.pos { color: #22c55e; }
+.neg { color: #ef4444; }
+
+/* Quiz --------------------------------------------------------------------- */
+.quizCard { border-color: rgba(59, 130, 246, 0.3); }
+
+.quizQuestion {
+    font-size: 0.92rem;
+    color: #e2e8f0;
+    line-height: 1.6;
+    margin: 0 0 0.75rem;
+}
+
+.quizInput {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
+    background-color: var(--surface-2, #1E1E1E);
+    color: #e2e8f0;
+    font-size: 0.875rem;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.quizInput:focus { border-color: rgba(59,130,246,0.5); }
+
+.quizSubmit {
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0;
+    background: var(--accent); color: #000; border: 2px solid var(--border, #333333); box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.quizSubmit:hover { background: var(--accent-hover); transform: translate(-2px,-2px); box-shadow: 4px 4px 0px var(--accent, #CCFF00); }
+
+/* Subject Status ------------------------------------------------------------ */
+.subjectTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.subjectTable th {
+    text-align: left;
+    color: #64748b;
+    font-weight: 600;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--border, #333333);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.subjectTable td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 2px solid var(--border, #333333);
+    color: #e2e8f0;
+}
+
+.badge {
+    padding: 0.2rem 0.55rem;
+    border-radius: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.badge_safe  { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.badge_watch { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.badge_risk  { background: rgba(239, 68, 68, 0.15); color: #ef4444; }

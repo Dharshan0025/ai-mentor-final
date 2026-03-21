@@ -11,8 +11,8 @@
     gap: 12px;
     padding: 10px 14px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     cursor: pointer;
     text-align: left;
     width: 100%;
@@ -62,8 +62,8 @@
     gap: 5px;
     padding: 5px 10px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     cursor: pointer;
     font-size: 0.75rem;
     color: var(--text-2);

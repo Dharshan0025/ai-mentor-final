@@ -16,11 +16,11 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #FF7A00, #FF9E3D);
+    background: var(--surface-2, #1E1E1E);
     color: #fff;
     padding: 8px 16px;
-    border-radius: 999px;
-    box-shadow: 0 6px 20px rgba(255, 122, 0, 0.45);
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     font-weight: 800;
     letter-spacing: 0.02em;
 }
@@ -47,8 +47,8 @@
     align-items: center;
     gap: 5px;
     background: rgba(255, 122, 0, 0.08);
-    border: 1px solid rgba(255, 122, 0, 0.2);
-    border-radius: 999px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 4px 12px;
 }
 

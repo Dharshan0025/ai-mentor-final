@@ -19,8 +19,8 @@
 .headerIcon {
     width: 46px;
     height: 46px;
-    background: linear-gradient(135deg, #3B82F6, #6366F1);
-    border-radius: 12px;
+    background: var(--surface-2, #1E1E1E);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -50,7 +50,7 @@
     background: var(--accent, #FF7A00);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.84rem;
     font-weight: 600;
     cursor: pointer;
@@ -82,7 +82,7 @@
 .legendDot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: 0;
     flex-shrink: 0;
 }
 
@@ -92,7 +92,7 @@
     padding: 20px 24px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 12px;
+    border-radius: 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -129,7 +129,7 @@
 .input {
     padding: 8px 10px;
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 7px;
+    border-radius: 0;
     background: var(--bg, #F4F1EC);
     color: var(--text-1, #1C1410);
     font-size: 0.85rem;
@@ -162,7 +162,7 @@
 .chip {
     padding: 5px 12px;
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 20px;
+    border-radius: 0;
     background: var(--bg, #F4F1EC);
     color: var(--text-2, #5C4A35);
     font-size: 0.8rem;
@@ -188,7 +188,7 @@
     background: var(--accent, #FF7A00);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.88rem;
     font-weight: 700;
     cursor: pointer;
@@ -215,8 +215,8 @@
 .tipsBar {
     padding: 10px 16px;
     background: rgba(59, 130, 246, 0.06);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    border-radius: 8px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.83rem;
     color: var(--text-2, #5C4A35);
 }
@@ -234,7 +234,7 @@
 .weekCard {
     background: var(--surface, #FFFDF7);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 12px;
+    border-radius: 0;
     overflow: hidden;
     transition: border-color 0.2s;
 }
@@ -268,7 +268,7 @@
     width: 36px;
     height: 36px;
     background: var(--bg, #F4F1EC);
-    border-radius: 10px;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -388,7 +388,7 @@
 
 .topicSubject {
     padding: 1px 7px;
-    border-radius: 5px;
+    border-radius: 0;
     background: rgba(255, 122, 0, 0.1);
     color: var(--accent, #FF7A00);
     font-size: 0.72rem;
@@ -398,7 +398,7 @@
 .topicPriority {
     width: 7px;
     height: 7px;
-    border-radius: 50%;
+    border-radius: 0;
     flex-shrink: 0;
 }
 
@@ -413,9 +413,9 @@
 
 .topicBloom {
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: 0;
     background: rgba(99, 102, 241, 0.1);
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
     font-size: 0.7rem;
     font-weight: 700;
 }
@@ -433,7 +433,7 @@
     padding: 16px 20px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 12px;
+    border-radius: 0;
 }
 
 .mileSTitle {
@@ -460,7 +460,7 @@
 .mileWeek {
     padding: 2px 9px;
     background: var(--bg, #F4F1EC);
-    border-radius: 5px;
+    border-radius: 0;
     font-weight: 700;
     font-size: 0.75rem;
     white-space: nowrap;

@@ -27,11 +27,41 @@ api.interceptors.response.use(
         if (err.response?.status === 401) {
             localStorage.removeItem('ai_mentor_token');
             localStorage.removeItem('ai_mentor_student');
+            clearDashboardCache();
             window.location.href = '/';
         }
         return Promise.reject(err);
     }
 );
+
+// ── Session Cache (once-per-login dashboard data) ─────────────────────────────
+const CACHE_PREFIX = 'aim_cache_';
+
+function cacheGet(key) {
+    try {
+        const raw = sessionStorage.getItem(CACHE_PREFIX + key);
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+}
+
+function cacheSet(key, value) {
+    try { sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify(value)); } catch { /* quota */ }
+}
+
+const CACHEABLE_KEYS = [
+    'profile', 'briefing', 'benchmark',
+    'predictions', 'schedule', 'mastery',
+    'tutorOptions', 'sentiment', 'tutorProgress',
+    'weakAreas', 'dueTopics', 'roadmap',
+];
+
+export function clearDashboardCache() {
+    CACHEABLE_KEYS.forEach(k => sessionStorage.removeItem(CACHE_PREFIX + k));
+}
+
+export function cacheRemove(key) {
+    sessionStorage.removeItem(CACHE_PREFIX + key);
+}
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export async function login(collegeId, password) {
@@ -49,6 +79,7 @@ export function logout() {
     localStorage.removeItem('ai_mentor_token');
     localStorage.removeItem('ai_mentor_student');
     localStorage.removeItem('ai_mentor_college_id');
+    clearDashboardCache();
     api.post('/auth/logout').catch(() => { });
 }
 
@@ -79,20 +110,47 @@ export async function sendChatMessage({ message, sessionId, lang = 'en', history
     return data; // { agent, content, citations, tokens_used, model_used }
 }
 
+/**
+ * Fetch recent chat sessions
+ */
+export async function getChatSessions() {
+    const { data } = await api.get('/chat/sessions');
+    return data;
+}
+
+/**
+ * Fetch history for a specific chat session
+ * @param {string} sessionId
+ */
+export async function getChatHistory(sessionId) {
+    if (!sessionId) return [];
+    const { data } = await api.get(`/chat/${sessionId}/history`);
+    return data;
+}
+
 // ── Student ───────────────────────────────────────────────────────────────────
-export async function getMyProfile() {
+export async function getMyProfile({ forceRefresh = false } = {}) {
+    if (!forceRefresh) {
+        const cached = cacheGet('profile');
+        if (cached) return cached;
+    }
     const { data } = await api.get('/student/me');
+    cacheSet('profile', data);
     return data;
 }
 
-export async function getMyPredictions() {
+export async function getMyPredictions({ forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('predictions'); if (c) return c; }
     const { data } = await api.get('/student/me/predictions');
+    cacheSet('predictions', data);
     return data;
 }
 
 
-export async function getMySchedule() {
+export async function getMySchedule({ forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('schedule'); if (c) return c; }
     const { data } = await api.get('/student/me/schedule');
+    cacheSet('schedule', data);
     return data;
 }
 
@@ -101,13 +159,20 @@ export async function getMyCareer() {
     return data;
 }
 
-export async function getMyMastery() {
+export async function getMyMastery({ forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('mastery'); if (c) return c; }
     const { data } = await api.get('/student/me/mastery');
+    cacheSet('mastery', data);
     return data;
 }
 
-export async function getMyBenchmark() {
+export async function getMyBenchmark({ forceRefresh = false } = {}) {
+    if (!forceRefresh) {
+        const cached = cacheGet('benchmark');
+        if (cached) return cached;
+    }
     const { data } = await api.get('/student/me/benchmark');
+    cacheSet('benchmark', data);
     return data;
 }
 
@@ -128,8 +193,10 @@ export async function generateQuiz({ subject, topic, bloom_level }) {
     return data;
 }
 
-export async function getMySentiment(limit = 30) {
+export async function getMySentiment(limit = 30, { forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('sentiment'); if (c) return c; }
     const { data } = await api.get(`/student/me/sentiment?limit=${limit}`);
+    cacheSet('sentiment', data);
     return data;
 }
 
@@ -145,8 +212,13 @@ export async function simulateScenario({ attendance_delta = 0, assignment_delta 
 
 
 // ── Proactive Intelligence ─────────────────────────────────────────────────────
-export async function getBriefing() {
+export async function getBriefing({ forceRefresh = false } = {}) {
+    if (!forceRefresh) {
+        const cached = cacheGet('briefing');
+        if (cached) return cached;
+    }
     const { data } = await api.get('/student/me/briefing');
+    cacheSet('briefing', data);
     return data; // { briefing: [], summary: {}, student_name, exam_days, ai_brief }
 }
 
@@ -173,9 +245,11 @@ export async function getMinScores(targetCgpa = 7.5) {
 }
 
 // ── Student Profile ───────────────────────────────────────────────────────────
-export async function getStudentProfile() {
+export async function getStudentProfile({ forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('profile'); if (c) return c; }
     try {
         const { data } = await api.get('/student/me');
+        cacheSet('profile', data);
         return data;
     } catch {
         return getStoredStudent() || {};
@@ -198,8 +272,10 @@ export function startTutorLesson({ subjectCode, topic, mode = 'visual', sessionI
 }
 
 /** Tutor options from DB only (subjects + topics per subject). No hardcoded data. */
-export async function getTutorOptions() {
+export async function getTutorOptions({ forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('tutorOptions'); if (c) return c; }
     const { data } = await api.get('/student/me/tutor/options');
+    cacheSet('tutorOptions', data);
     return data; // { subjects: [...], topics_by_subject: { "CODE": ["topic1", ...] } }
 }
 
@@ -243,10 +319,12 @@ export async function evaluateCheckpoint(body) {
  * Get topics due for spaced repetition review (SM-2 smart endpoint).
  * Returns: { due_count, due_topics, horizon_hours }
  */
-export async function getDueTopics(horizonHours = 24) {
+export async function getDueTopics(horizonHours = 24, { forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('dueTopics'); if (c) return c; }
     const { data } = await api.get(
         `${mePath('/tutor/due-topics/smart')}?horizon_hours=${horizonHours}&limit=10`
     );
+    cacheSet('dueTopics', data);
     return data;
 }
 
@@ -259,6 +337,10 @@ export async function getDueTopics(horizonHours = 24) {
  */
 export async function recordCheckpointMemory(body) {
     const { data } = await api.post(mePath('/tutor/checkpoint/record'), body);
+    // Clear dynamic progress caches so the dashboard updates
+    cacheRemove('tutorProgress');
+    cacheRemove('weakAreas');
+    cacheRemove('dueTopics');
     return data; // { checkpoint_id, sm2_update: { interval_days, next_review_at } }
 }
 
@@ -267,9 +349,11 @@ export async function recordCheckpointMemory(body) {
  * Returns: { total_topics, mastered_concepts, struggling_concepts, due_for_review,
  *             overall_accuracy, checkpoint_pass_rate, by_subject, learning_dna }
  */
-export async function getTutorProgress(subjectCode = null) {
+export async function getTutorProgress(subjectCode = null, { forceRefresh = false } = {}) {
+    if (!forceRefresh && !subjectCode) { const c = cacheGet('tutorProgress'); if (c) return c; }
     const params = subjectCode ? `?subject_code=${subjectCode}` : '';
     const { data } = await api.get(`${mePath('/tutor/progress')}${params}`);
+    if (!subjectCode) cacheSet('tutorProgress', data);
     return data;
 }
 
@@ -277,10 +361,12 @@ export async function getTutorProgress(subjectCode = null) {
  * Get weak areas based on SM-2 difficulty_level, avg_score, confusion_count.
  * Returns: { weak_areas: [{ subject_code, topic, concept, avg_score, ... }] }
  */
-export async function getWeakAreas(subjectCode = null, topN = 10) {
+export async function getWeakAreas(subjectCode = null, topN = 10, { forceRefresh = false } = {}) {
+    if (!forceRefresh && !subjectCode) { const c = cacheGet('weakAreas'); if (c) return c; }
     const params = new URLSearchParams({ top_n: topN });
     if (subjectCode) params.set('subject_code', subjectCode);
     const { data } = await api.get(`${mePath('/tutor/weak-areas')}?${params}`);
+    if (!subjectCode) cacheSet('weakAreas', data);
     return data;
 }
 
@@ -520,12 +606,15 @@ export async function getSkillGap(domain = null) {
 /** Generate a personalized study roadmap */
 export async function generateRoadmap(body) {
     const { data } = await api.post(mePath('/roadmap/generate'), body);
+    sessionStorage.removeItem(CACHE_PREFIX + 'roadmap'); // bust so next load is fresh
     return data;
 }
 
 /** Get the student's most recent roadmap */
-export async function getRoadmap() {
+export async function getRoadmap({ forceRefresh = false } = {}) {
+    if (!forceRefresh) { const c = cacheGet('roadmap'); if (c) return c; }
     const { data } = await api.get(mePath('/roadmap'));
+    cacheSet('roadmap', data);
     return data;
 }
 

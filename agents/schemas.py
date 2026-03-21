@@ -60,6 +60,9 @@ class ChatResponse(BaseModel):
     citations: list[Citation] = []
     tokens_used: int = 0
     model_used: str = ""
+    ui_card: Optional[Any] = None           # generative UI widget dict or None
+    suggested_actions: list[Any] = []       # [{label, prompt, icon}]
+    xp_awarded: int = 0                     # XP earned this turn
 
 
 # ── Student ────────────────────────────────────────────────────────────────────

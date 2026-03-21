@@ -248,7 +248,7 @@ function SubjectDeepDive({ subjects = [] }) {
                         <div className={styles.deepSection}>
                             <div className={styles.deepSectionLabel}>⚡ Immediate Actions</div>
                             <ul className={styles.deepList}>
-                                {s.immediate_actions.map((a, i) => <li key={i}>{a}</li>)}
+                                {s.immediate_actions.map((c, i) => <li key={i}>{c}</li>)}
                             </ul>
                         </div>
                     )}
@@ -264,16 +264,17 @@ export default function Prediction() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [sliders, setSliders] = useState({ attendance: 0, assignments: 0, studyHours: 0 });
+    const [targetCgpa, setTargetCgpa] = useState(8.5); // Macro Slider state
     const [simResult, setSimResult] = useState(null);
     const [simLoading, setSimLoading] = useState(false);
     const [simError, setSimError] = useState(null);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const debounceRef = useRef(null);
 
-    const fetchPrediction = useCallback(async () => {
+    const fetchPrediction = useCallback(async (isRefresh = false) => {
         setLoading(true); setError(null);
         try {
-            const data = await getMyPredictions();
+            const data = await getMyPredictions({ forceRefresh: isRefresh === true });
             setPred(data);
         } catch (e) {
             setError('Could not load prediction data. Please try again.');
@@ -323,7 +324,7 @@ export default function Prediction() {
 
     if (error) return (
         <div className={styles.page}>
-            <div className={styles.errorCard}>{error} <button className={styles.retryBtn} onClick={fetchPrediction}>Retry</button></div>
+            <div className={styles.errorCard}>{error} <button className={styles.retryBtn} onClick={() => fetchPrediction(true)}>Retry</button></div>
         </div>
     );
 
@@ -364,9 +365,53 @@ export default function Prediction() {
                     <h1 className={styles.title}>How you'll perform <span className="text-accent">next semester</span></h1>
                     <p className={styles.sub}>2-phase Amazon Bedrock analysis — real ERP data · bloom levels · learning DNA</p>
                 </div>
-                <button className={styles.regenBtn} onClick={fetchPrediction} title="Re-run Bedrock analysis">
+                <button className={styles.regenBtn} onClick={() => fetchPrediction(true)} title="Re-run Bedrock analysis">
                     <RefreshCw size={14} /> Refresh Analysis
                 </button>
+            </div>
+
+            {/* ── Macro Slider: Target CGPA ─────────────────────────── */}
+            <div className={styles.macroCard}>
+                <div className={styles.macroHeader}>
+                    <div className={styles.macroTitle}><Target size={18} /> Target CGPA</div>
+                    <div className={styles.macroTarget}>{targetCgpa.toFixed(1)}</div>
+                    {(() => {
+                        const base = pred?.predicted_cgpa || (historyData.length ? historyData[historyData.length - 1] : 7.0);
+                        const delta = targetCgpa - base;
+                        let rLabel = 'On Track';
+                        let rStyle = { borderColor: 'var(--safe)', color: 'var(--safe)', background: 'rgba(16,185,129,0.1)' };
+                        
+                        if (delta > 1.2) {
+                            rLabel = 'Highly Unlikely';
+                            rStyle = { borderColor: 'var(--risk)', color: 'var(--risk)', background: 'rgba(239,68,68,0.1)' };
+                        } else if (delta > 0.6) {
+                            rLabel = 'Stretch Goal';
+                            rStyle = { borderColor: 'var(--watch)', color: 'var(--watch)', background: 'rgba(245,158,11,0.1)' };
+                        } else if (delta > 0.2) {
+                            rLabel = 'Challenging but Possible';
+                            rStyle = { borderColor: 'var(--accent)', color: 'var(--accent)', background: 'rgba(204,255,0,0.1)' };
+                        } else if (delta < -0.5) {
+                            rLabel = 'Playing it Safe';
+                            rStyle = { borderColor: 'var(--text-3)', color: 'var(--text-3)', background: 'var(--surface-2)' };
+                        }
+
+                        return (
+                            <div className={styles.realityBadge} style={rStyle}>
+                                {rLabel}
+                            </div>
+                        );
+                    })()}
+                </div>
+                
+                <div className={styles.macroSliderWrap}>
+                    <input type="range" className={styles.macroSlider} min="5.0" max="10.0" step="0.1" 
+                           value={targetCgpa} 
+                           onChange={e => setTargetCgpa(parseFloat(e.target.value))} />
+                    <div className={styles.macroSliderLabels}>
+                        <span>5.0</span>
+                        <span>10.0</span>
+                    </div>
+                </div>
             </div>
 
             {/* ── Stats bar ─────────────────────────────────────────── */}
@@ -530,7 +575,6 @@ export default function Prediction() {
                     })}
                 </div>
             </div>
-
             {/* ── Subject Deep Dive tabs ────────────────────────────── */}
             {subjects.length > 0 && (
                 <div className={`card ${styles.deepDiveCard}`}>
@@ -542,7 +586,48 @@ export default function Prediction() {
                 </div>
             )}
 
-            {/* ── Scenario Simulator ────────────────────────────────── */}
+            {/* ── Macro Target Setter ───────────────────────────────── */}
+            <div className={`card ${styles.macroTargetCard}`}>
+                <div className={styles.macroHeader}>
+                    <h2 className={styles.cardTitle}>🎯 Set Your Target CGPA</h2>
+                    <span className="pill pill-safe">Reality Check</span>
+                </div>
+                <div className={styles.macroBody}>
+                    <div className={styles.macroSliderArea}>
+                        <p className={styles.simDesc}>Drag the slider to set your macro stretch goal. See your probability of hitting it based on current telemetry.</p>
+                        <div className={styles.macroSliderTrack}>
+                            <div className={styles.macroSliderFill} style={{ width: `${((targetCgpa - 5) / 5) * 100}%` }} />
+                            <input 
+                                type="range" 
+                                min="5.0" 
+                                max="10.0" 
+                                step="0.1" 
+                                className={styles.macroSliderInput} 
+                                value={targetCgpa} 
+                                onChange={e => setTargetCgpa(parseFloat(e.target.value))} 
+                            />
+                            <div className={styles.macroSliderHandle} style={{ left: `${((targetCgpa - 5) / 5) * 100}%` }} />
+                        </div>
+                        <div className={styles.macroMarks}>
+                            <span>5.0</span>
+                            <span>7.5</span>
+                            <span>10.0</span>
+                        </div>
+                    </div>
+                    <div className={styles.macroResult}>
+                        <div className={styles.macroValue}>{targetCgpa.toFixed(1)}</div>
+                        {(() => {
+                            const baseCgpa = pred?.predicted_cgpa || 7.5;
+                            const diff = targetCgpa - baseCgpa;
+                            if (diff > 0.8) return <span className={`${styles.macroConfidence} ${styles.confStretch}`}>⚠ Unlikely</span>;
+                            if (diff > 0.3) return <span className={`${styles.macroConfidence} ${styles.confStretch}`}>⚠ Stretch Goal</span>;
+                            if (diff > 0) return <span className={`${styles.macroConfidence} ${styles.confTrack}`}>📈 On Track</span>;
+                            return <span className={`${styles.macroConfidence} ${styles.confEasy}`}>✓ Highly Likely</span>;
+                        })()}
+                    </div>
+                </div>
+            </div>
+
             <div className={`card ${styles.simulatorCard}`}>
                 <div className={styles.cardHeader}>
                     <h2 className={styles.cardTitle}><Zap size={16} style={{ color: 'var(--accent)' }} /> What if…?</h2>

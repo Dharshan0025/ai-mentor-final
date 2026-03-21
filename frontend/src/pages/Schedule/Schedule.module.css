@@ -45,14 +45,14 @@
 
 .statPill {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 8px var(--sp-4);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    box-shadow: var(--shadow-card);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     min-width: 90px;
 }
 
@@ -75,8 +75,8 @@
     gap: 6px;
     padding: 8px var(--sp-3);
     background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--text-1);
@@ -111,15 +111,15 @@
     gap: var(--sp-3);
     padding: 12px var(--sp-4);
     background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.2);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.875rem;
     color: var(--text-1);
     line-height: 1.4;
 }
 
 .rationaleIcon {
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
     flex-shrink: 0;
 }
 
@@ -131,9 +131,9 @@
     font-size: 0.75rem;
     font-weight: 600;
     padding: 4px 10px;
-    border-radius: 20px;
+    border-radius: 0;
     background: rgba(99, 102, 241, 0.15);
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
     white-space: nowrap;
 }
 
@@ -145,8 +145,8 @@
     padding: 12px var(--sp-4);
     background: rgba(245, 158, 11, 0.08);
     /* watch approx */
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.875rem;
     color: var(--text-1);
 }
@@ -157,9 +157,9 @@
 
 .overdueTag {
     background: var(--surface);
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border, #333333);
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.75rem;
     font-family: var(--font-mono, monospace);
     color: var(--risk);
@@ -174,8 +174,8 @@
     font-size: 0.8125rem;
     background: var(--surface);
     padding: var(--sp-3) var(--sp-4);
-    border-radius: var(--r-md);
-    border: 1px solid var(--border-light);
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
 }
 
 .legendItem {
@@ -188,7 +188,7 @@
 .legendBlock {
     width: 16px;
     height: 16px;
-    border-radius: 4px;
+    border-radius: 0;
 }
 
 .legendBloomRow {
@@ -197,7 +197,7 @@
     gap: var(--sp-3);
     margin-left: auto;
     padding-left: var(--sp-4);
-    border-left: 1px solid var(--border-light);
+    border-left: 1px solid var(--border, #333333);
 }
 
 .legendBloom {
@@ -211,14 +211,14 @@
 .bloomDot2 {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
+    border-radius: 0;
 }
 
 /* ── Tabs ───────────────────────────────────────────────────────────── */
 .tabNav {
     display: flex;
     gap: var(--sp-2);
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
     margin-bottom: -var(--sp-2);
 }
 
@@ -253,8 +253,8 @@
     position: relative;
     overflow: hidden;
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-lg);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
 }
 
 /* ── Week View ──────────────────────────────────────────────────────── */
@@ -274,7 +274,7 @@
 .dayHeader {
     text-align: center;
     padding: 8px 0;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -308,7 +308,7 @@
     background: var(--accent);
     color: white;
     padding: 2px 6px;
-    border-radius: 12px;
+    border-radius: 0;
     text-transform: uppercase;
 }
 
@@ -320,7 +320,7 @@
 }
 
 .slot {
-    border-radius: var(--r-md);
+    border-radius: 0;
     padding: 10px;
     display: flex;
     flex-direction: column;
@@ -331,7 +331,7 @@
 
 .slot:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .slotTime {
@@ -363,7 +363,7 @@
     justify-content: space-between;
     margin-top: auto;
     padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: 1px solid var(--border, #333333);
 }
 
 .slotDuration {
@@ -375,7 +375,7 @@
 .bloomDot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
+    border-radius: 0;
 }
 
 .slotArrow {
@@ -414,13 +414,13 @@
     background: var(--surface);
     width: 400px;
     height: 100%;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     padding: var(--sp-6);
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
     animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    border-left: 1px solid var(--border-light);
+    border-left: 1px solid var(--border, #333333);
     overflow-y: auto;
 }
 
@@ -456,7 +456,7 @@
 .panelClose:hover {
     color: var(--text-1);
     background: var(--surface-2);
-    border-radius: 50%;
+    border-radius: 0;
 }
 
 .panelHeader {
@@ -491,7 +491,7 @@
 
 .panelBadge {
     padding: 4px 10px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 700;
     background: var(--surface-2);
@@ -501,20 +501,20 @@
 .panelTip,
 .panelStudyTip {
     padding: 12px;
-    border-radius: var(--r-md);
+    border-radius: 0;
     font-size: 0.875rem;
     line-height: 1.5;
 }
 
 .panelTip {
     background: rgba(99, 102, 241, 0.08);
-    color: #4F46E5;
+    color: var(--accent, #CCFF00);
 }
 
 .panelStudyTip {
     background: var(--surface-2);
     color: var(--text-2);
-    border-left: 3px solid var(--text-3);
+    border-left: 3px solid var(--border, #333333);
 }
 
 
@@ -522,7 +522,7 @@
 .pomodoroBox {
     margin-top: auto;
     background: var(--surface-2);
-    border-radius: var(--r-lg);
+    border-radius: 0;
     padding: var(--sp-5);
     display: flex;
     flex-direction: column;
@@ -569,7 +569,7 @@
     color: var(--surface);
     border: none;
     padding: 10px 24px;
-    border-radius: 20px;
+    border-radius: 0;
     font-weight: 700;
     cursor: pointer;
     display: flex;
@@ -582,8 +582,8 @@
     background: transparent;
     color: var(--text-2);
     padding: 10px;
-    border: 1px solid var(--border-light);
-    border-radius: 50%;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
 }
 
 .pomodoroPills {
@@ -594,7 +594,7 @@
 .pomodoroPill {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--border-light);
 }
 
@@ -625,7 +625,7 @@
 .todayStat {
     flex: 1;
     background: var(--surface-2);
-    border-radius: var(--r-md);
+    border-radius: 0;
     padding: var(--sp-4);
     display: flex;
     flex-direction: column;
@@ -654,13 +654,13 @@
 
 .todaySlot {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: var(--sp-4);
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .todaySlotHeader {
@@ -697,14 +697,14 @@
 .todayAITip {
     font-size: 0.875rem;
     padding: 8px 12px;
-    border-radius: 4px;
+    border-radius: 0;
     background: var(--surface-2);
 }
 
 .todayAITip {
     background: rgba(99, 102, 241, 0.06);
     color: #4338CA;
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    border: 2px solid var(--border, #333333);
 }
 
 /* ── Subjects Tab ───────────────────────────────────────────────────── */
@@ -716,13 +716,13 @@
 
 .subjectCard {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-lg);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: var(--sp-4);
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .subjectCardHeader {
@@ -747,7 +747,7 @@
 
 .subjectTypeBadge {
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -779,7 +779,7 @@
 .coverageBar {
     height: 6px;
     background: var(--surface-2);
-    border-radius: 3px;
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -793,7 +793,7 @@
     color: var(--risk);
     background: rgba(239, 68, 68, 0.1);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     font-weight: 600;
     align-self: flex-start;
 }
@@ -803,8 +803,8 @@
     color: var(--text-2);
     background: var(--surface-2);
     padding: 8px 10px;
-    border-radius: 4px;
-    border-left: 2px solid var(--text-3);
+    border-radius: 0;
+    border-left: 2px solid var(--border, #333333);
 }
 
 /* ── Stats Tab ──────────────────────────────────────────────────────── */
@@ -881,7 +881,7 @@
 .barOuter {
     width: 20px;
     background: var(--surface-2);
-    border-radius: 10px;
+    border-radius: 0;
     flex: 1;
     display: flex;
     align-items: flex-end;
@@ -890,7 +890,7 @@
 
 .barFill {
     width: 100%;
-    border-radius: 10px;
+    border-radius: 0;
     transition: height 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -934,7 +934,7 @@
 /* ── Skeleton / Edge cases ──────────────────────────────────────────── */
 .skeletonBar {
     background: var(--border-light);
-    border-radius: 4px;
+    border-radius: 0;
     animation: pulse 1.5s infinite;
     color: transparent !important;
 }
@@ -942,7 +942,7 @@
 .skeletonSlot {
     background: var(--surface-2) !important;
     border-left: 3px solid var(--border-light) !important;
-    border-radius: var(--r-md);
+    border-radius: 0;
     animation: pulse 1.5s infinite;
 }
 
@@ -968,8 +968,8 @@
 .errorCard {
     padding: var(--sp-4);
     background: rgba(239, 68, 68, 0.1);
-    border: 1px solid var(--risk);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     color: var(--risk);
     display: flex;
     align-items: center;
@@ -981,10 +981,10 @@
 .retryBtn {
     padding: 6px 14px;
     margin-left: auto;
-    border: 1px solid var(--risk);
+    border: 2px solid var(--border, #333333);
     background: transparent;
     color: var(--risk);
-    border-radius: var(--r-sm);
+    border-radius: 0;
     cursor: pointer;
     font-weight: 600;
     transition: background 0.2s;
@@ -999,11 +999,11 @@
     gap: var(--sp-3);
     background: var(--surface);
     padding: var(--sp-4);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.875rem;
     color: var(--text-2);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     line-height: 1.4;
 }
 

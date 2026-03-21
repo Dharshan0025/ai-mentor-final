@@ -1,23 +1,23 @@
 /* ── Base primitives ──────────────────────────────────────────── */
 .line {
-    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border-light) 50%, var(--surface-2) 75%);
+    background: var(--surface-2, #1E1E1E);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    border-radius: 6px;
+    border-radius: 0;
 }
 
 .circle {
-    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border-light) 50%, var(--surface-2) 75%);
+    background: var(--surface-2, #1E1E1E);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
-    border-radius: 50%;
+    border-radius: 0;
     flex-shrink: 0;
 }
 
 .card {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-lg);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 16px;
     animation: fadeIn 300ms ease both;
 }
@@ -47,8 +47,8 @@
     gap: 14px;
     padding: 20px;
     background: var(--surface);
-    border-radius: var(--r-lg);
-    border: 1px solid var(--border-light);
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
 }
 
 .metricStripSkel {
@@ -59,8 +59,8 @@
 
 .metricSkel {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-lg);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 14px;
 }
 
@@ -99,8 +99,8 @@
 
 .learnSubjectSkel {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 12px;
 }
 
@@ -132,8 +132,8 @@
     gap: 20px;
     padding: 24px;
     background: var(--surface);
-    border-radius: var(--r-lg);
-    border: 1px solid var(--border-light);
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
 }
 
 .careerGridSkel {

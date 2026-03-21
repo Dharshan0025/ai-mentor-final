@@ -4,15 +4,15 @@
 
 .board {
     background: #0f1117;
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 14px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 720px;
     animation: fadeUp 300ms ease both;
-    box-shadow: 0 4px 32px rgba(99, 102, 241, 0.12);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .board.fullscreen {
@@ -42,7 +42,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+    border-bottom: 1px solid var(--border, #333333);
     background: rgba(99, 102, 241, 0.06);
 }
 
@@ -76,7 +76,7 @@
 .ctrl {
     width: 26px;
     height: 26px;
-    border-radius: 6px;
+    border-radius: 0;
     background: transparent;
     border: none;
     color: #64748b;
@@ -88,7 +88,7 @@
 }
 
 .ctrl:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background-color: var(--surface-2, #1E1E1E);
     color: #e2e8f0;
 }
 
@@ -118,7 +118,7 @@
 .svgWrapper svg {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
+    border-radius: 0;
 }
 
 /* Loading */
@@ -134,9 +134,9 @@
 .loadingRing {
     width: 28px;
     height: 28px;
-    border: 2px solid rgba(99, 102, 241, 0.2);
-    border-top-color: #6366f1;
-    border-radius: 50%;
+    border: 2px solid var(--border, #333333);
+    border-top-color: var(--accent, #CCFF00);
+    border-radius: 0;
     animation: spin 0.75s linear infinite;
 }
 
@@ -160,7 +160,7 @@
 /* ── Footer ─────────────────────────────────── */
 .footer {
     padding: 8px 14px;
-    border-top: 1px solid rgba(99, 102, 241, 0.1);
+    border-top: 1px solid var(--border, #333333);
     background: rgba(0, 0, 0, 0.2);
 }
 

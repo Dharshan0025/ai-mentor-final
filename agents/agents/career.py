@@ -2,7 +2,7 @@
 AI-Mentor — Career Intelligence Agent
 Handles: career domain mapping, strength analysis, roadmap generation,
          certification recommendations, internship/placement guidance.
-LLM: AWS Bedrock (ChatGPT 120b) with Groq fallback
+LLM: NVIDIA NIM (llama-3.3-70b-instruct) with Groq fallback
 
 Architecture:
   1. compute_career_profile()  — deterministic, data-driven analysis
@@ -18,23 +18,26 @@ logger = logging.getLogger(__name__)
 
 
 def _get_llm(temperature: float = 0.4, max_tokens: int = 600):
-    """Return Bedrock ChatGPT first, fall back to Groq."""
-    try:
-        from langchain_aws import ChatBedrock
-        return ChatBedrock(
-            model_id=settings.bedrock_model_id,
-            region_name=settings.aws_region,
-            model_kwargs={"temperature": temperature, "max_tokens": max_tokens},
-        ), "bedrock"
-    except Exception as e:
-        logger.warning(f"Bedrock init failed ({e}), using Groq")
-        from langchain_groq import ChatGroq
-        return ChatGroq(
-            api_key=settings.groq_api_key,
-            model=settings.groq_model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        ), "groq"
+    """Return NVIDIA NIM LLM first, fall back to Groq."""
+    if settings.nvidia_api_key:
+        try:
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(
+                api_key=settings.nvidia_api_key,
+                base_url=settings.nvidia_base_url,
+                model=settings.nvidia_model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            ), "nvidia"
+        except Exception as e:
+            logger.warning(f"NVIDIA NIM init failed ({e}), using Groq")
+    from langchain_groq import ChatGroq
+    return ChatGroq(
+        api_key=settings.groq_api_key,
+        model=settings.groq_model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    ), "groq"
 
 
 # ── Career Domain Mapping ───────────────────────────────────────────────────

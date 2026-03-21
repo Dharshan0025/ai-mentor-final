@@ -5,24 +5,24 @@
 /* Card */
 .card {
     background: var(--surface);
-    border-radius: var(--r-lg);
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border-light);
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    border: 2px solid var(--border, #333333);
     transition: box-shadow var(--transition-base),
         transform var(--transition-base);
 }
 
 .card:hover {
-    box-shadow: var(--shadow-float);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .card--elevated {
-    box-shadow: var(--shadow-elevated);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .card--interactive:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-float);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 /* Buttons */
@@ -31,7 +31,7 @@
     align-items: center;
     gap: var(--sp-2);
     padding: 10px 20px;
-    border-radius: var(--r-full);
+    border-radius: 0;
     font-size: 0.875rem;
     font-weight: 500;
     font-family: var(--font-body);
@@ -69,7 +69,7 @@
 
 .btn-icon {
     padding: 8px;
-    border-radius: var(--r-md);
+    border-radius: 0;
     color: var(--text-2);
     transition: all var(--transition-fast);
 }
@@ -85,7 +85,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 12px;
-    border-radius: var(--r-full);
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 500;
     font-family: var(--font-body);
@@ -99,7 +99,7 @@
 .pill-muted {
     background: var(--surface-2);
     color: var(--text-2);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border, #333333);
 }
 
 .pill-safe {
@@ -125,7 +125,7 @@
     padding: 6px 14px;
     background: var(--accent-light);
     color: var(--accent);
-    border-radius: var(--r-full);
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -137,7 +137,7 @@
     width: 100%;
     padding: 12px 16px;
     border: 1.5px solid var(--border);
-    border-radius: var(--r-md);
+    border-radius: 0;
     font-size: 0.9375rem;
     font-family: var(--font-body);
     color: var(--text-1);
@@ -152,7 +152,7 @@
 
 .input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-light);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 /* Agent dot */
@@ -160,7 +160,7 @@
     display: inline-block;
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: 0;
 }
 
 .agent-dot.academic {
@@ -197,7 +197,7 @@
 
 /* Avatar */
 .avatar {
-    border-radius: 50%;
+    border-radius: 0;
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -217,10 +217,10 @@
 /* Metric card */
 .metric-card {
     background: var(--surface);
-    border-radius: var(--r-lg);
+    border-radius: 0;
     padding: var(--sp-4);
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border-light);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    border: 2px solid var(--border, #333333);
 }
 
 .metric-card__value {
@@ -260,7 +260,7 @@
     align-items: center;
     gap: var(--sp-3);
     padding: 10px 0;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
 }
 
 .risk-bar-row:last-child {
@@ -276,13 +276,13 @@
     flex: 1;
     height: 6px;
     background: var(--surface-2);
-    border-radius: 99px;
+    border-radius: 0;
     overflow: hidden;
 }
 
 .risk-bar-fill {
     height: 100%;
-    border-radius: 99px;
+    border-radius: 0;
     transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -314,7 +314,7 @@
 .bloom-block {
     width: 12px;
     height: 12px;
-    border-radius: 2px;
+    border-radius: 0;
     background: var(--border);
     transition: background var(--transition-fast);
 }

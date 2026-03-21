@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import styles from './Learning.module.css';
 import { LearningSkeleton } from '../../components/Skeleton/Skeleton';
-import { generateQuiz, getStudentProfile, getMyMastery, getTutorOptions } from '../../services/api';
+import { generateQuiz, getStudentProfile, getMyMastery, getTutorOptions, awardXp } from '../../services/api';
 
 // ── Real syllabus topics per subject code ─────────────────────────────────────
 // Aligned with Anna University CSBS Regulation 2021, Sem 4-7
@@ -144,6 +144,19 @@ function QuizPlayer({ subject, topic, bloomLevel, onBack }) {
 
     useEffect(() => { fetchQuiz(); }, [subject, topic, bloomLevel]);
 
+    useEffect(() => {
+        if (state === QUIZ_STATES.FINISHED && quizData) {
+            const finalPct = Math.round((score / quizData.total) * 100);
+            awardXp({
+                action: 'lesson_complete',
+                amount: finalPct >= 80 ? 50 : (finalPct >= 50 ? 25 : 10),
+                metadata: { subject, topic, bloomLevel, pct: finalPct }
+            }).then(() => {
+                if (window.refreshStudentXp) window.refreshStudentXp();
+            }).catch(console.error);
+        }
+    }, [state, quizData, score, subject, topic, bloomLevel]);
+
     const q = quizData?.questions?.[idx];
 
     function handleAnswer(optIdx) {
@@ -204,6 +217,18 @@ function QuizPlayer({ subject, topic, bloomLevel, onBack }) {
                 ))}
             </div>
             <div className={styles.resultsActions}>
+                {pct >= 80 && (
+                    <button className={`${styles.btnPrimary} ${styles.btnPerk}`} disabled style={{ background: 'var(--accent)', color: 'var(--bg)', border: 'none' }}>
+                        <Trophy size={14} /> Perk Unlocked: Skip Pass
+                    </button>
+                )}
+                {pct < 50 && (
+                    <Link to="/chat" state={{ initialPrompt: `I'm struggling with ${topic}. Can you explain it to me like I'm 5 using a simple real-world analogy?` }} style={{ textDecoration: 'none' }}>
+                        <button className={styles.btnPrimary} style={{ background: 'var(--text-1)', color: 'var(--bg)' }}>
+                            <Brain size={14} /> Explain Like I'm 5
+                        </button>
+                    </Link>
+                )}
                 <button className={styles.btnSecondary} onClick={fetchQuiz}><RotateCcw size={14} /> Retake</button>
                 <button className={styles.btnPrimary} onClick={onBack}>← Back to Topics</button>
             </div>
@@ -254,6 +279,7 @@ function QuizPlayer({ subject, topic, bloomLevel, onBack }) {
 // ── Main Learning Page ────────────────────────────────────────────────────────
 export default function Learning() {
     const [subjects, setSubjects] = useState([]);
+    const [student, setStudent] = useState(null);
     const [topicsBySubject, setTopicsBySubject] = useState({});
     const [loading, setLoading] = useState(true);
     const [mastery, setMastery] = useState({ topics: [], attempts: [] });
@@ -266,6 +292,7 @@ export default function Learning() {
     useEffect(() => {
         getStudentProfile()
             .then(data => {
+                setStudent(data);
                 const subs = (data.subjects || []).map(s => ({
                     ...s,
                     bloomLevel: s.bloom_level ?? s.bloomLevel ?? 1,
@@ -282,6 +309,11 @@ export default function Learning() {
             })
             .finally(() => setLoading(false));
 
+        // Global callback for QuizPlayer to trigger a profile refresh when XP is awarded
+        window.refreshStudentXp = () => {
+            getStudentProfile({ forceRefresh: true }).then(data => setStudent(data));
+        };
+
         getMyMastery()
             .then(data => setMastery({ topics: data.topics || [], attempts: data.attempts || [] }))
             .catch(() => setMastery({ topics: [], attempts: [] }))
@@ -290,6 +322,8 @@ export default function Learning() {
         getTutorOptions()
             .then(data => setTopicsBySubject(data.topics_by_subject || {}))
             .catch(() => setTopicsBySubject({}));
+            
+        return () => { delete window.refreshStudentXp; };
     }, []);
 
     const topics = selectedSubject ? (topicsBySubject[selectedSubject.code] || []) : [];
@@ -378,6 +412,32 @@ export default function Learning() {
                         <div className={styles.bloomPanel}>
                             <span className={styles.bloomPanelTitle}>Your Bloom Journey</span>
                             <BloomLadder current={selectedSubject.bloomLevel ?? 1} />
+                        </div>
+
+                        {/* Gamification Panel */}
+                        <div className={styles.gamificationPanel}>
+                            <div className={styles.gamificationHeader}>
+                                <span className={styles.gamificationTitle}>💎 Vault & Perks</span>
+                                <span className={styles.gamificationXp}>{student?.xp || 0} XP</span>
+                            </div>
+                            <div className={styles.perkList}>
+                                <div className={`${styles.perkItem} ${(student?.xp || 0) >= 500 ? styles.perkUnlocked : styles.perkLocked}`}>
+                                    <div className={styles.perkIcon}><Trophy size={14}/></div>
+                                    <div className={styles.perkDetails}>
+                                        <span className={styles.perkName}>Skip Minor Quiz</span>
+                                        <span className={styles.perkReq}>500 XP required</span>
+                                    </div>
+                                    {((student?.xp || 0) >= 500) && <span className={styles.perkBadge}>Unlocked</span>}
+                                </div>
+                                <div className={`${styles.perkItem} ${(student?.xp || 0) >= 1500 ? styles.perkUnlocked : styles.perkLocked}`}>
+                                    <div className={styles.perkIcon}><Zap size={14}/></div>
+                                    <div className={styles.perkDetails}>
+                                        <span className={styles.perkName}>Custom Avatar Theme</span>
+                                        <span className={styles.perkReq}>1500 XP required</span>
+                                    </div>
+                                    {((student?.xp || 0) >= 1500) && <span className={styles.perkBadge}>Unlocked</span>}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Learning Intelligence: topic mastery summary */}

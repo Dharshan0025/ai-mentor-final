@@ -46,8 +46,8 @@
     gap: 6px;
     padding: 8px 16px;
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
@@ -94,7 +94,7 @@
     align-items: center;
     gap: 4px;
     padding: 4px 10px;
-    border-radius: 20px;
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: capitalize;
@@ -106,7 +106,7 @@
     align-items: center;
     gap: var(--sp-3);
     padding: 12px var(--sp-4);
-    border-radius: var(--r-md);
+    border-radius: 0;
     border: 1px solid;
     font-size: 0.875rem;
     color: var(--text-1);
@@ -119,9 +119,9 @@
     gap: var(--sp-3);
     flex-wrap: wrap;
     padding: 12px var(--sp-4);
-    border-radius: var(--r-md);
+    border-radius: 0;
     background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 2px solid var(--border, #333333);
     font-size: 0.875rem;
     color: var(--text-1);
 }
@@ -133,7 +133,7 @@
 
 .arrearTag {
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 600;
     background: rgba(239, 68, 68, 0.12);
@@ -195,7 +195,7 @@
 .legendLine {
     width: 24px;
     height: 2.5px;
-    border-radius: 99px;
+    border-radius: 0;
     display: inline-block;
 }
 
@@ -224,13 +224,13 @@
     flex: 1;
     height: 6px;
     background: var(--surface-2);
-    border-radius: 99px;
+    border-radius: 0;
     overflow: hidden;
 }
 
 .verdictFill {
     height: 100%;
-    border-radius: 99px;
+    border-radius: 0;
     transition: width 0.8s ease;
 }
 
@@ -245,7 +245,7 @@
     color: var(--text-2);
     padding: 10px;
     background: var(--surface-2);
-    border-radius: var(--r-md);
+    border-radius: 0;
     margin-top: var(--sp-3);
 }
 
@@ -286,16 +286,16 @@
 }
 
 .agentIcon {
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
 }
 
 .agentProviderTag {
     font-size: 0.6875rem;
     font-weight: 700;
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     background: rgba(99, 102, 241, 0.1);
-    color: #4F46E5;
+    color: var(--accent, #CCFF00);
 }
 
 .agentMeta {
@@ -388,20 +388,20 @@
     gap: var(--sp-4);
     padding: var(--sp-4);
     background: var(--surface-2);
-    border-radius: var(--r-md);
+    border-radius: 0;
     cursor: pointer;
     transition: background var(--transition-fast);
 }
 
 .move:hover {
     background: var(--surface);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .movePriority {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -431,7 +431,7 @@
 
 .moveBadge {
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 600;
     background: var(--surface);
@@ -446,11 +446,11 @@
     color: var(--text-2);
     padding: 10px;
     background: var(--surface-2);
-    border-radius: var(--r-md);
+    border-radius: 0;
 }
 
 .dnaTip svg {
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
     flex-shrink: 0;
 }
 
@@ -466,7 +466,7 @@
 }
 
 .riskRow {
-    border-radius: var(--r-md);
+    border-radius: 0;
     overflow: hidden;
     cursor: pointer;
     transition: background var(--transition-fast);
@@ -500,14 +500,14 @@
 .riskBarTrack {
     height: 6px;
     background: var(--surface-2);
-    border-radius: 99px;
+    border-radius: 0;
     overflow: hidden;
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border, #333333);
 }
 
 .riskBarFill {
     height: 100%;
-    border-radius: 99px;
+    border-radius: 0;
     transition: width 800ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -526,7 +526,7 @@
 .riskScoreCircle {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -563,7 +563,7 @@
     gap: var(--sp-2);
     overflow-x: auto;
     padding-bottom: 4px;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
 }
 
 .deepTab {
@@ -571,8 +571,8 @@
     align-items: center;
     gap: 6px;
     padding: 8px 14px;
-    border-radius: var(--r-md);
-    border: 1px solid var(--border-light);
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
     background: var(--surface-2);
     font-size: 0.8125rem;
     font-weight: 600;
@@ -591,7 +591,7 @@
 .deepTabDot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: 0;
     flex-shrink: 0;
 }
 
@@ -667,7 +667,7 @@
 
 .deepBadge {
     padding: 4px 10px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 600;
     background: var(--surface-2);
@@ -682,7 +682,7 @@
 
 .deepSection {
     background: var(--surface-2);
-    border-radius: var(--r-md);
+    border-radius: 0;
     padding: var(--sp-4);
 }
 
@@ -715,6 +715,111 @@
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
+}
+
+/* ── Macro Slider & Reality Check ─────────────────────────────────────── */
+.macroCard {
+    background: #1A1A1A;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
+    padding: 24px 28px;
+    margin-bottom: var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 6px 6px 0px var(--accent, #CCFF00);
+}
+
+.macroHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.macroTitle {
+    font-size: 1.125rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.macroTitle svg {
+    color: var(--accent);
+}
+
+.macroTarget {
+    font-size: 3rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 2px 2px 0px rgba(255,122,0,0.2);
+}
+
+.realityBadge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 2px solid;
+    border-radius: 0;
+}
+
+.macroSliderWrap {
+    margin-top: 8px;
+    position: relative;
+    padding: 0 10px;
+}
+
+.macroSlider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    height: 32px;
+}
+
+.macroSlider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.macroSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 28px;
+    width: 20px;
+    background: var(--accent);
+    border: 2px solid #000;
+    border-radius: 0;
+    margin-top: -11px;
+    box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+    transition: transform 0.1s;
+}
+
+.macroSlider::-webkit-slider-thumb:active {
+    transform: scale(1.1);
+}
+
+.macroSliderLabels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-3);
 }
 
 /* ── Simulator ────────────────────────────────────────────────────────── */
@@ -784,8 +889,8 @@
 
 .simDeltaCard {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: 14px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 20px 24px;
     margin-bottom: 18px;
     min-height: 80px;
@@ -851,7 +956,7 @@
     font-size: 0.9rem;
     font-weight: 700;
     padding: 5px 14px;
-    border-radius: 20px;
+    border-radius: 0;
     margin-left: auto;
     transition: all 0.3s ease;
 }
@@ -882,8 +987,8 @@
     gap: var(--sp-3);
     padding: var(--sp-3) var(--sp-4);
     background: rgba(99, 102, 241, 0.06);
-    border: 1px solid rgba(99, 102, 241, 0.2);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.875rem;
     color: var(--text-1);
     line-height: 1.6;
@@ -898,8 +1003,8 @@
 .simSubjectTable {
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     overflow: hidden;
 }
 
@@ -920,7 +1025,7 @@
     grid-template-columns: 1fr 60px 60px 60px 60px;
     padding: 12px 16px;
     align-items: center;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border, #333333);
     font-size: 0.84rem;
     transition: background 0.15s;
 }
@@ -967,8 +1072,8 @@
 .errorCard {
     padding: var(--sp-4);
     background: rgba(239, 68, 68, 0.1);
-    border: 1px solid var(--risk);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     color: var(--risk);
     display: flex;
     align-items: center;
@@ -978,10 +1083,10 @@
 
 .retryBtn {
     padding: 6px 14px;
-    border: 1px solid var(--risk);
+    border: 2px solid var(--border, #333333);
     background: transparent;
     color: var(--risk);
-    border-radius: var(--r-sm);
+    border-radius: 0;
     cursor: pointer;
     font-weight: 600;
 }
@@ -1035,8 +1140,8 @@
 /* ── Processing Engine ──────────────────────────────────────────────────── */
 .processingEngine {
     background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: var(--sp-5);
     display: flex;
     flex-direction: column;
@@ -1053,7 +1158,7 @@
 }
 
 .processingBrainIcon {
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
     animation: brainPulse 2s ease-in-out infinite;
 }
 
@@ -1078,9 +1183,9 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 3px 10px;
-    border-radius: 20px;
+    border-radius: 0;
     background: rgba(99, 102, 241, 0.12);
-    color: #4F46E5;
+    color: var(--accent, #CCFF00);
     animation: fadeOsc 1.4s ease-in-out infinite;
 }
 
@@ -1107,7 +1212,7 @@
     align-items: flex-start;
     gap: var(--sp-3);
     padding: 10px 12px;
-    border-radius: var(--r-md);
+    border-radius: 0;
     transition: all 0.3s ease;
 }
 
@@ -1121,7 +1226,7 @@
 
 .stepActive {
     background: rgba(99, 102, 241, 0.07);
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    border: 2px solid var(--border, #333333);
 }
 
 .stepActive .stepLabel {
@@ -1147,15 +1252,15 @@
 }
 
 .stepActive .stepIcon {
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
 }
 
 .stepSpinner {
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(99, 102, 241, 0.25);
-    border-top-color: #6366F1;
-    border-radius: 50%;
+    border: 2px solid var(--border, #333333);
+    border-top-color: var(--accent, #CCFF00);
+    border-radius: 0;
     animation: spin 0.7s linear infinite;
 }
 
@@ -1178,7 +1283,7 @@
 
 .stepDetail {
     font-size: 0.775rem;
-    color: #6366F1;
+    color: var(--accent, #CCFF00);
     animation: fadeIn 0.35s ease;
 }
 
@@ -1199,5 +1304,148 @@
     color: var(--text-3);
     text-align: center;
     padding-top: var(--sp-3);
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border, #333333);
+}
+
+/* ── Macro Target Setter ──────────────────────────────────────────────── */
+.macroTargetCard {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    padding: var(--sp-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-4);
+}
+
+.macroHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.macroBody {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-5);
+}
+
+.macroSliderArea {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+}
+
+.macroSliderTrack {
+    position: relative;
+    height: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+}
+
+.macroSliderFill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--accent);
+}
+
+.macroSliderInput {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    opacity: 0;
+    cursor: grab;
+}
+
+.macroSliderInput:active {
+    cursor: grabbing;
+}
+
+.macroSliderHandle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    pointer-events: none;
+    transition: transform var(--transition-fast);
+}
+
+.macroSliderInput:active ~ .macroSliderHandle {
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.macroMarks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-3);
+    font-family: var(--font-mono);
+}
+
+.macroResult {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-left: var(--sp-5);
+    border-left: 1px dashed var(--border);
+    min-width: 160px;
+}
+
+.macroValue {
+    font-size: 3rem;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: var(--text-1);
+    line-height: 1;
+}
+
+.macroConfidence {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 10px;
+    border: 1px solid currentColor;
+}
+
+.confStretch {
+    color: var(--risk);
+    background: rgba(255, 68, 68, 0.1);
+}
+
+.confTrack {
+    color: var(--safe);
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.confEasy {
+    color: var(--text-2);
+    background: var(--surface-2);
+}
+
+@media (max-width: 768px) {
+    .macroBody {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--sp-4);
+    }
+
+    .macroResult {
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px dashed var(--border);
+        padding-top: var(--sp-4);
+    }
 }

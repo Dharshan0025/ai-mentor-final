@@ -13,11 +13,11 @@
 .resultCard {
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 18px;
+    border-radius: 0;
     padding: 32px 36px;
     width: 100%;
     max-width: 640px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .configHeader {
@@ -69,7 +69,7 @@
     align-items: center;
     gap: 7px;
     padding: 8px 14px;
-    border-radius: 999px;
+    border-radius: 0;
     border: 1.5px solid var(--border);
     background: var(--bg);
     color: var(--text-2);
@@ -93,7 +93,7 @@
 
 .pill {
     padding: 8px 18px;
-    border-radius: 999px;
+    border-radius: 0;
     border: 1.5px solid var(--border);
     background: var(--bg);
     color: var(--text-2);
@@ -121,7 +121,7 @@
     background: var(--accent, #FF7A00);
     color: #fff;
     border: none;
-    border-radius: 12px;
+    border-radius: 0;
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
@@ -162,8 +162,8 @@
     color: var(--text-2);
     padding: 5px 12px;
     background: var(--bg);
-    border-radius: 999px;
-    border: 1px solid var(--border);
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
 }
 
 .timerWarn {
@@ -187,7 +187,7 @@
 .progressBar {
     height: 5px;
     background: var(--border);
-    border-radius: 999px;
+    border-radius: 0;
     margin-bottom: 24px;
     overflow: hidden;
 }
@@ -195,7 +195,7 @@
 .progressFill {
     height: 100%;
     background: var(--accent);
-    border-radius: 999px;
+    border-radius: 0;
     transition: width 0.3s ease;
 }
 
@@ -219,7 +219,7 @@
     align-items: center;
     gap: 12px;
     padding: 13px 16px;
-    border-radius: 12px;
+    border-radius: 0;
     border: 1.5px solid var(--border);
     background: var(--bg);
     cursor: pointer;
@@ -237,7 +237,7 @@
 .optionLetter {
     width: 26px;
     height: 26px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--border);
     display: inline-flex;
     align-items: center;
@@ -310,7 +310,7 @@
     align-items: flex-start;
     gap: 10px;
     padding: 10px 12px;
-    border-radius: 10px;
+    border-radius: 0;
     font-size: 0.8rem;
 }
 
@@ -353,7 +353,7 @@
     justify-content: center;
     gap: 7px;
     padding: 12px;
-    border-radius: 12px;
+    border-radius: 0;
     font-size: 0.88rem;
     font-weight: 700;
     cursor: pointer;

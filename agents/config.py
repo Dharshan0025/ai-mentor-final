@@ -11,14 +11,12 @@ load_dotenv()
 
 class Settings(BaseSettings):
     groq_api_key: str = ""
-    groq_model: str = "openai/gpt-oss-20b"
-    # Bedrock (Global Inference Profile — ChatGPT 120b)
-    aws_access_key_id: str = ""
-    aws_secret_access_key: str = ""
-    aws_bearer_token_bedrock: str = ""  # Short-term bearer token (preferred)
-    bedrock_api_key: str = ""           # Alias / legacy field
-    aws_region: str = "us-east-1"
-    bedrock_model_id: str = "openai.gpt-oss-120b-1"
+    groq_model: str = "llama-3.3-70b-versatile"
+
+    # NVIDIA NIM (OpenAI-compatible free API — replaces Bedrock)
+    nvidia_api_key: str = ""
+    nvidia_model: str = "meta/llama-3.3-70b-instruct"
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
 
     # Database — Supabase
     database_url: str = "postgresql://postgres:password@localhost:5432/ai_mentor"

@@ -32,14 +32,14 @@
 
 .voiceTeacher {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-top: 3px solid var(--accent);
-    border-radius: var(--r-lg);
+    border: 2px solid var(--border, #333333);
+    border-top: 3px solid var(--border, #333333);
+    border-radius: 0;
     padding: 14px 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    box-shadow: var(--shadow-card);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     animation: fadeIn 250ms ease both;
     min-width: 280px;
     max-width: 380px;
@@ -68,9 +68,9 @@
     font-size: 0.65rem;
     font-weight: 600;
     padding: 2px 7px;
-    border-radius: var(--r-full);
+    border-radius: 0;
     background: var(--surface-2);
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border, #333333);
     color: var(--text-2);
     white-space: nowrap;
 }
@@ -78,7 +78,7 @@
 .closeBtn {
     width: 22px;
     height: 22px;
-    border-radius: 50%;
+    border-radius: 0;
     border: none;
     background: var(--surface-2);
     color: var(--text-3);
@@ -109,7 +109,7 @@
     align-items: center;
     gap: 3px;
     padding: 8px 6px 6px;
-    border-radius: var(--r-md);
+    border-radius: 0;
     border: 1.5px solid var(--border);
     background: var(--surface-2);
     cursor: pointer;
@@ -126,7 +126,7 @@
 .personalityActive {
     border-color: var(--accent) !important;
     background: var(--accent-light) !important;
-    box-shadow: 0 0 0 2px rgba(255, 122, 0, 0.12);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .personalityBtn span {
@@ -158,7 +158,7 @@
 .waveBar {
     width: 4px;
     height: 4px;
-    border-radius: 2px;
+    border-radius: 0;
     background: var(--border);
     transition: background 0.2s;
 }
@@ -185,7 +185,7 @@
 .dot {
     width: 7px;
     height: 7px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--accent);
     flex-shrink: 0;
     animation: spin 1.4s linear infinite;
@@ -204,7 +204,7 @@
 .micBtn {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 0;
     border: 1.5px solid var(--border);
     background: var(--surface-2);
     color: var(--text-2);
@@ -264,12 +264,12 @@
     gap: 6px;
     padding: 6px 10px;
     background: var(--risk-light);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: var(--r-sm);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.75rem;
     color: var(--risk);
 }
-/* Speed slider — Phase 7 */
+/* Speed slider  Phase 7 */
 .speedRow {
     display: flex; align-items: center; gap: 8px;
     font-size: 0.74rem; color: var(--text-2);

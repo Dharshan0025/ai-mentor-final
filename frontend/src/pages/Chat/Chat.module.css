@@ -9,20 +9,27 @@
     height: 100vh;
     overflow: hidden;
     background: var(--bg);
+    position: relative;
 }
 
 /* ── Context Sidebar ─────────────────────────────────────────── */
 .contextPanel {
-    width: 260px;
-    flex-shrink: 0;
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    bottom: 24px;
+    width: 280px;
     background: var(--surface);
-    border-right: 1px solid var(--border-light);
-    padding: 20px 16px;
+    border: 2px solid var(--border, #333333);
+    padding: 24px 20px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    scrollbar-width: thin;
+    gap: 20px;
+    scrollbar-width: none; /* Hide scrollbar for brutalist look */
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    z-index: 50;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .contextHeader {
@@ -34,8 +41,8 @@
 .contextAvatar {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #06b6d4);
+    border-radius: 0;
+    background: var(--accent);
     color: #fff;
     display: flex;
     align-items: center;
@@ -66,19 +73,19 @@
 .contextStat {
     flex: 1;
     background: var(--surface-2);
-    border-radius: 8px;
+    border-radius: 0;
     padding: 8px 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border, #333333);
     transition: border-color 0.2s;
 }
 
 .statHighlight {
     border-color: var(--accent);
-    background: rgba(99, 102, 241, 0.06);
+    background: var(--accent-glow);
 }
 
 .statDanger {
@@ -138,7 +145,7 @@
     font-size: 0.6rem;
     font-weight: 600;
     padding: 1px 6px;
-    border-radius: 99px;
+    border-radius: 0;
     text-transform: uppercase;
 }
 
@@ -161,14 +168,14 @@
 .attBar {
     height: 3px;
     background: var(--surface-2);
-    border-radius: 99px;
+    border-radius: 0;
     overflow: hidden;
     flex: 1;
 }
 
 .attFill {
     height: 100%;
-    border-radius: 99px;
+    border-radius: 0;
     transition: width 0.6s ease;
 }
 
@@ -203,7 +210,7 @@
     gap: 5px;
     font-size: 0.75rem;
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: 0;
 }
 
 .briefCritical {
@@ -217,7 +224,7 @@
 }
 
 .briefInfoItem {
-    background: rgba(99, 102, 241, 0.08);
+    background: var(--accent-glow);
     color: var(--accent);
 }
 
@@ -238,7 +245,7 @@
 .agentPillDot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: 0;
     flex-shrink: 0;
 }
 
@@ -253,6 +260,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding-right: 320px; /* Space for the HUD */
 }
 
 /* ── Briefing strip ──────────────────────────────────────────── */
@@ -261,7 +269,7 @@
     align-items: center;
     gap: 10px;
     padding: 10px 20px;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
     animation: slideDown 300ms ease both;
 }
 
@@ -279,17 +287,17 @@
 
 .briefingCritical {
     background: rgba(239, 68, 68, 0.08);
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid var(--border, #333333);
 }
 
 .briefingWarning {
     background: rgba(245, 158, 11, 0.08);
-    border-left: 3px solid #f59e0b;
+    border-left: 3px solid var(--border, #333333);
 }
 
 .briefingInfo {
-    background: rgba(99, 102, 241, 0.06);
-    border-left: 3px solid var(--accent);
+    background: var(--accent-glow);
+    border-left: 3px solid var(--border, #333333);
 }
 
 .briefingIcon {
@@ -310,7 +318,7 @@
     cursor: pointer;
     font-size: 0.875rem;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 0;
     transition: color 0.15s;
 }
 
@@ -333,66 +341,66 @@
 .emptyState {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 40px 0;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 24px;
+    padding: 60px 20px;
     animation: fadeUp 400ms ease both;
+    height: 100%;
 }
 
 .emptyAvatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), #06b6d4);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 1.5rem;
-    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.12);
+    display: none; /* Removed for Massive Typography approach */
 }
 
 .emptyTitle {
-    font-size: 1.375rem;
-    font-weight: 700;
+    font-size: 4.5rem;
+    font-weight: 800;
     color: var(--text-1);
-    text-align: center;
+    text-align: left;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    max-width: 800px;
 }
 
 .emptySub {
-    font-size: 0.875rem;
+    font-size: 1.25rem;
     color: var(--text-3);
-    text-align: center;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    max-width: 600px;
+    border-left: 4px solid var(--border, #333333);
+    padding-left: 16px;
 }
 
 .quickGrid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 8px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 32px;
     width: 100%;
-    max-width: 620px;
+    max-width: 800px;
 }
 
 .quickCard {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 14px 10px;
+    gap: 12px;
+    padding: 16px 20px;
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     cursor: pointer;
-    transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
-    text-align: center;
+    transition: all 0.15s;
+    text-align: left;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .quickCard:hover {
     border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+    transform: translate(-3px, -3px);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .quickIcon {
@@ -414,13 +422,15 @@
 
 .userBubble {
     max-width: 520px;
-    padding: 12px 18px;
+    padding: 14px 20px;
     background: var(--accent);
-    color: #fff;
-    border-radius: 18px 4px 18px 18px;
+    color: #000;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.9375rem;
     line-height: 1.5;
-    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    font-weight: 500;
 }
 
 /* ── Agent response card ─────────────────────────────────────── */
@@ -444,7 +454,7 @@
 .agentBadgeIcon {
     width: 20px;
     height: 20px;
-    border-radius: 6px;
+    border-radius: 0;
     background: color-mix(in srgb, var(--agent-c) 12%, transparent);
     display: flex;
     align-items: center;
@@ -463,7 +473,7 @@
 .agentBadgeDot {
     width: 3px;
     height: 3px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--text-3);
 }
 
@@ -475,16 +485,23 @@
 /* Card body */
 .agentCard {
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-left: 3px solid var(--agent-c);
-    border-radius: 4px 14px 14px 14px;
-    padding: 16px 20px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    border: 2px solid var(--border, #333333);
+    border-left: 6px solid var(--border, #333333);
+    border-radius: 0;
+    padding: 20px 24px;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     width: 100%;
     max-width: 680px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.agentCard:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    border-color: var(--agent-c);
 }
 
 .cardContent {
@@ -507,7 +524,7 @@
     font-size: 0.875em;
     background: var(--surface-2);
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: 0;
 }
 
 .cardContent h2 {
@@ -538,13 +555,75 @@
     margin-bottom: 8px;
 }
 
+.cardContent ul,
+.cardContent ol {
+    margin: 0 0 10px;
+    padding: 0;
+}
+
+.codeBlock {
+    margin: 0 0 10px;
+    padding: 12px 14px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
+.codeBlock code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+.tableWrap {
+    margin: 4px 0 12px;
+    overflow-x: auto;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
+    background: var(--surface-2);
+}
+
+.table {
+    width: 100%;
+    min-width: 420px;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+}
+
+.table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-3);
+    background: color-mix(in srgb, var(--agent-c) 8%, transparent);
+}
+
+.table td {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border, #333333);
+    color: var(--text-2);
+    vertical-align: top;
+    line-height: 1.5;
+}
+
+.table tr:nth-child(even) td {
+    background-color: var(--surface-2, #1E1E1E);
+}
+
 /* Citations */
 .citations {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     padding-top: 10px;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border, #333333);
 }
 
 .citation {
@@ -553,8 +632,8 @@
     gap: 4px;
     padding: 3px 10px;
     background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 99px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.6875rem;
     color: var(--text-3);
     font-family: 'JetBrains Mono', monospace;
@@ -574,25 +653,25 @@
     padding: 6px 12px;
     background: color-mix(in srgb, var(--agent-c) 8%, transparent);
     border: 1px solid color-mix(in srgb, var(--agent-c) 25%, transparent);
-    border-radius: 99px;
+    border-radius: 0;
     font-size: 0.75rem;
     color: var(--agent-c);
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    transition: all 0.1s;
     font-weight: 500;
 }
 
 .chip:hover {
     background: color-mix(in srgb, var(--agent-c) 16%, transparent);
-    transform: translateY(-1px);
+    transform: translate(-2px, -2px); box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 /* ── Orchestration Pipeline Visualizer ───────────────────────── */
 .pipeline {
     padding: 14px 18px;
     background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -609,7 +688,7 @@
 .pipelinePulse {
     width: 7px;
     height: 7px;
-    border-radius: 50%;
+    border-radius: 0;
     animation: pulseBeat 1s ease-in-out infinite;
 }
 
@@ -657,7 +736,7 @@
 .pipelineDot {
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--text-3);
     flex-shrink: 0;
     transition: background 0.3s;
@@ -677,10 +756,85 @@
     color: var(--text-2);
 }
 
+/* ── Reasoning Drawer (Show Your Work) ───────────────────────────── */
+.reasoningDrawer {
+    margin-top: calc(var(--sp-2) + 2px);
+    border: 1px solid var(--border-1);
+    background: rgba(26, 26, 26, 0.4);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.reasoningDrawer summary {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-2);
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.reasoningDrawer summary::marker {
+    display: none;
+}
+.reasoningDrawer summary::-webkit-details-marker {
+    display: none;
+}
+.reasoningContent {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border-1);
+    font-size: 0.75rem;
+    color: var(--text-3);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.reasoningContent p {
+    margin: 0;
+}
+.reasoningContent strong {
+    color: var(--text-1);
+}
+
+/* ── Smart Prompts (Predictive) ──────────────────────────────────── */
+.smartPrompts {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+    scrollbar-width: none;
+}
+.smartPrompts::-webkit-scrollbar {
+    display: none;
+}
+.smartPromptBtn {
+    flex-shrink: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border, #333333);
+    color: var(--text-2);
+    font-size: 0.75rem;
+    padding: 6px 12px;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.smartPromptBtn:hover {
+    background: var(--surface-1);
+    color: var(--text-1);
+    border-color: var(--accent);
+}
+
 /* ── Input area ──────────────────────────────────────────────── */
 .inputArea {
     padding: 16px 32px 20px;
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border, #333333);
     background: var(--surface);
     display: flex;
     flex-direction: column;
@@ -692,15 +846,15 @@
     align-items: center;
     gap: 8px;
     padding: 8px 10px 8px 16px;
-    border: 1.5px solid var(--border);
-    border-radius: 14px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     background: var(--surface-2);
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .inputBar:focus-within {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .inputBarBusy {
@@ -732,7 +886,7 @@
 .sendBtn {
     width: 38px;
     height: 38px;
-    border-radius: 10px;
+    border-radius: 0;
     background: var(--accent);
     color: #fff;
     border: none;
@@ -761,9 +915,9 @@
 .sendSpinner {
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(99, 102, 241, 0.3);
+    border: 2px solid var(--border, #333333);
     border-top-color: var(--accent);
-    border-radius: 50%;
+    border-radius: 0;
     animation: spin 0.7s linear infinite;
 }
 

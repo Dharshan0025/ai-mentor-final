@@ -10,7 +10,7 @@
     z-index: 100;
     background: rgba(244, 241, 236, 0.85);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
 }
 
 .navInner {
@@ -34,7 +34,7 @@
     width: 30px;
     height: 30px;
     background: var(--accent);
-    border-radius: var(--r-sm);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -82,7 +82,7 @@
     text-decoration: none;
     padding: 6px 14px;
     border: 1.5px solid var(--accent);
-    border-radius: var(--r-full);
+    border-radius: 0;
     transition: background 150ms ease, color 150ms ease;
 }
 
@@ -137,7 +137,7 @@
     padding: 6px 14px;
     background: var(--accent-light);
     color: var(--accent);
-    border-radius: var(--r-full);
+    border-radius: 0;
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -165,10 +165,10 @@
 /* Login form */
 .loginForm {
     background: var(--surface);
-    border-radius: var(--r-xl);
+    border-radius: 0;
     padding: var(--sp-5);
-    box-shadow: var(--shadow-float);
-    border: 1px solid var(--border-light);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    border: 2px solid var(--border, #333333);
     display: flex;
     flex-direction: column;
     gap: var(--sp-3);
@@ -208,9 +208,9 @@
 /* Hero preview */
 .heroPreview {
     background: var(--surface);
-    border-radius: var(--r-xl);
-    box-shadow: var(--shadow-elevated);
-    border: 1px solid var(--border-light);
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    border: 2px solid var(--border, #333333);
     overflow: hidden;
 }
 
@@ -220,13 +220,13 @@
     gap: var(--sp-2);
     padding: var(--sp-2) var(--sp-3);
     background: var(--surface-2);
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
 }
 
 .previewDot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
+    border-radius: 0;
 }
 
 .previewURL {
@@ -246,8 +246,8 @@
 
 .previewCard {
     background: var(--surface-2);
-    border: 1px solid var(--border-light);
-    border-radius: var(--r-md);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: var(--sp-3);
 }
 
@@ -280,14 +280,14 @@
 .previewBlock {
     width: 16px;
     height: 16px;
-    border-radius: 3px;
+    border-radius: 0;
 }
 
 /* Features */
 .features {
     background: var(--surface-2);
-    border-top: 1px solid var(--border-light);
-    border-bottom: 1px solid var(--border-light);
+    border-top: 1px solid var(--border, #333333);
+    border-bottom: 1px solid var(--border, #333333);
     padding: var(--sp-8) 0;
     position: relative;
     overflow: hidden;
@@ -345,7 +345,7 @@
 .featureIcon {
     width: 44px;
     height: 44px;
-    border-radius: var(--r-md);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -390,7 +390,7 @@
 
 /* Footer */
 .footer {
-    border-top: 1px solid var(--border-light);
+    border-top: 1px solid var(--border, #333333);
     padding: var(--sp-4) var(--sp-5);
     display: flex;
     justify-content: space-between;

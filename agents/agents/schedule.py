@@ -356,12 +356,13 @@ async def schedule_node(state: dict) -> dict:
     student_id = state.get("student_id")
 
     # Try to load learning DNA
-    learning_dna: dict = {}
+    learning_dna = state.get("learning_dna") or {}
     if student_id:
         try:
             from db import db
-            dna = await db.get_learning_dna(student_id)
-            learning_dna = dna or {}
+            if not learning_dna:
+                dna = await db.get_learning_dna(student_id)
+                learning_dna = dna or {}
         except Exception as e:
             logger.warning(f"Learning DNA load skipped in schedule_node: {e}")
 

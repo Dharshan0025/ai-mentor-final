@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime
 
 from config import settings
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from schemas import (
     ChatRequest, ChatResponse, HealthResponse, AgentId
 )
@@ -130,7 +130,7 @@ async def get_student_profile(student_id: str) -> dict:
 async def health_check():
     """Health check — confirms all systems operational."""
     agents_ready = ["academic", "prediction", "emotional", "learning", "schedule"]
-    llm_ready = bool(settings.groq_api_key) or bool(settings.aws_bearer_token_bedrock)
+    llm_ready = bool(settings.groq_api_key) or bool(settings.nvidia_api_key)
 
     return HealthResponse(
         status="ok",
@@ -139,6 +139,32 @@ async def health_check():
         db_connected=_db_connected,
         llm_ready=llm_ready,
     )
+
+
+# ── Voice API (Nova Sonic) ───────────────────────────────────────────────────
+
+class VoiceSynthesizeRequest(BaseModel):
+    text: str
+    personality: str = "professor"
+
+@app.post("/voice/synthesize")
+async def voice_synthesize(request: VoiceSynthesizeRequest):
+    from nova_sonic import get_tts
+    tts = get_tts(settings)
+
+    async def generate():
+        async for chunk in tts.stream_synthesize(request.text, request.personality):
+            yield chunk
+
+    return StreamingResponse(generate(), media_type="audio/wav")
+
+@app.post("/voice/transcribe")
+async def voice_transcribe(audio: UploadFile = File(...)):
+    from nova_sonic import get_stt
+    stt = get_stt(settings)
+    audio_bytes = await audio.read()
+    transcript = await stt.transcribe_audio(audio_bytes, audio.content_type or "audio/webm")
+    return {"transcript": transcript}
 
 
 @app.post("/auth/login")
@@ -185,6 +211,12 @@ async def chat(request: ChatRequest):
     logger.info(f"Chat request | session={request.session_id} | student={request.student_id}")
 
     student_profile = await get_student_profile(request.student_id)
+    learning_dna = {}
+    if _db_connected:
+        try:
+            learning_dna = await db.get_learning_dna(request.student_id) or {}
+        except Exception as e:
+            logger.warning(f"Learning DNA preload failed for {request.student_id}: {e}")
 
     # Build initial state for LangGraph
     initial_state = {
@@ -194,9 +226,12 @@ async def chat(request: ChatRequest):
         "lang":            request.lang.value,
         "history":         [msg.model_dump() for msg in request.history],
         "student_profile": student_profile,
+        "learning_dna":    learning_dna,
+        "student_snapshot": "",
         # Agent outputs (all None initially)
         "intent":              "",
         "agents_to_invoke":    [],
+        "mentor_plan":         {},
         "academic_output":     None,
         "prediction_output":   None,
         "emotional_output":    None,
@@ -206,10 +241,14 @@ async def chat(request: ChatRequest):
         "rag_context":         None,
         "sentiment_score":     0.0,
         "final_response":      "",
+        "ui_card":             None,
+        "suggested_actions":   [],
+        "xp_awarded":          0,
         "primary_agent":       "academic",
         "citations":           [],
         "tokens_used":         0,
         "model_used":          "",
+        "models_used":         [],
     }
 
     try:
@@ -228,6 +267,50 @@ async def chat(request: ChatRequest):
                 )
             )
 
+        # ── Fire-and-forget episodic memory extraction ────────────────────
+        if _db_connected:
+            from memory_worker import extract_and_store_memories
+            asyncio.create_task(
+                extract_and_store_memories(
+                    student_id=request.student_id,
+                    session_id=request.session_id,
+                    message=request.message,
+                    response=final_state.get("final_response", ""),
+                    student_profile=student_profile,
+                    db=db,
+                )
+            )
+
+        # ── Fire-and-forget message persistence ─────────────────────────────
+        if _db_connected and student_profile.get("db_id"):
+            db_id = student_profile["db_id"]
+            # 1. Ensure the session exists
+            await db.ensure_chat_session(request.session_id, db_id, title=request.message[:40])
+            
+            # 2. Save user message
+            asyncio.create_task(
+                db.save_message(
+                    session_id=request.session_id,
+                    student_db_id=db_id,
+                    role="user",
+                    content=request.message,
+                    lang=request.lang.value
+                )
+            )
+            # 3. Save assistant message
+            asyncio.create_task(
+                db.save_message(
+                    session_id=request.session_id,
+                    student_db_id=db_id,
+                    role="assistant",
+                    content=final_state.get("final_response", ""),
+                    agent=final_state.get("primary_agent", "academic"),
+                    citations=final_state.get("citations", []),
+                    model_used=final_state.get("model_used", ""),
+                    lang=request.lang.value
+                )
+            )
+
         return ChatResponse(
             session_id=request.session_id,
             agent=AgentId(final_state.get("primary_agent", "academic")),
@@ -235,11 +318,33 @@ async def chat(request: ChatRequest):
             citations=final_state.get("citations", []),
             tokens_used=final_state.get("tokens_used", 0),
             model_used=final_state.get("model_used", ""),
+            ui_card=final_state.get("ui_card"),
+            suggested_actions=final_state.get("suggested_actions", []),
+            xp_awarded=final_state.get("xp_awarded", 0),
         )
 
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Agent service temporarily unavailable")
+
+
+@app.get("/student/{student_id}/chat/sessions")
+async def get_chat_sessions_endpoint(student_id: str):
+    """Fetch recent chat sessions for a student."""
+    if not _db_connected:
+        return []
+    profile = await get_student_profile(student_id)
+    if not profile or "db_id" not in profile:
+        return []
+    return await db.get_chat_sessions(profile["db_id"])
+
+@app.get("/student/{student_id}/chat/{session_id}/history")
+async def get_chat_session_history(student_id: str, session_id: str):
+    """Fetch history for a specific chat session."""
+    if not _db_connected:
+        return []
+    # For extra security we could verify student_id matches session, keeping it simple
+    return await db.get_chat_history(session_id)
 
 
 @app.get("/student/{student_id}/tutor/options")
@@ -314,6 +419,92 @@ async def get_benchmark(student_id: str):
     return benchmark
 
 
+# ── XP / Gamification Endpoints ───────────────────────────────────────────────
+
+class XPAwardRequest(BaseModel):
+    student_id: str
+    xp: int = Field(..., ge=1, le=500, description="XP points to award (1–500)")
+    reason: str = ""
+
+
+@app.post("/xp/award", summary="Award XP to a student")
+async def award_xp(req: XPAwardRequest):
+    """Award XP points for high-quality questions, quiz completions, etc."""
+    if not _db_connected:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        pool = db._pool
+        if pool is None:
+            raise HTTPException(status_code=503, detail="DB pool unavailable")
+        async with pool.acquire() as conn:
+            await conn.execute("CALL award_xp($1, $2)", req.student_id, req.xp)
+            row = await conn.fetchrow(
+                "SELECT total_xp, level FROM student_xp WHERE student_id = $1",
+                req.student_id,
+            )
+        return {
+            "student_id": req.student_id,
+            "xp_awarded": req.xp,
+            "total_xp": row["total_xp"] if row else req.xp,
+            "level": row["level"] if row else 1,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("XP award failed: %s", exc)
+        raise HTTPException(status_code=500, detail="XP award failed")
+
+
+@app.get("/xp/leaderboard", summary="Top-10 students by XP")
+async def get_leaderboard(limit: int = 10):
+    """Returns anonymised leaderboard — name initials + department only."""
+    if not _db_connected:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        pool = db._pool
+        if pool is None:
+            raise HTTPException(status_code=503, detail="DB pool unavailable")
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT x.student_id, x.total_xp, x.level,
+                       s.name, s.department
+                FROM student_xp x
+                LEFT JOIN students s ON s.student_id = x.student_id
+                ORDER BY x.total_xp DESC
+                LIMIT $1
+                """,
+                limit,
+            )
+        entries = [
+            {
+                "rank": i + 1,
+                "student_id": r["student_id"],
+                "display_name": (r["name"] or "Student")[:3] + "***",
+                "department": r["department"] or "",
+                "total_xp": r["total_xp"],
+                "level": r["level"],
+            }
+            for i, r in enumerate(rows)
+        ]
+        return {"leaderboard": entries}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Leaderboard fetch failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Leaderboard unavailable")
+
+
+@app.get("/student/{student_id}/memories", summary="Get episodic memories for a student")
+async def get_memories(student_id: str, limit: int = 20):
+    """Returns the most recent episodic memory facts extracted from past sessions."""
+    if not _db_connected:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    from memory_worker import get_recent_memories
+    memories = await get_recent_memories(db, student_id, limit=limit)
+    return {"student_id": student_id, "memories": memories, "count": len(memories)}
+
+
 @app.get("/student/{student_id}/parent-summary")
 async def get_parent_summary(student_id: str):
     """
@@ -354,10 +545,10 @@ async def get_mastery(student_id: str):
 @app.post("/student/{student_id}/simulate")
 async def simulate_scenario(student_id: str, body: dict):
     """
-    Scenario simulator — numeric CGPA delta + Bedrock explanation of the change.
+    Scenario simulator — numeric CGPA delta + LLM explanation of the change.
     Body: { attendance_delta, assignment_delta, study_hours_delta }
     """
-    from agents.prediction import compute_predicted_cgpa, run_bedrock_sim_explanation
+    from agents.prediction import compute_predicted_cgpa, run_sim_explanation
     import copy
 
     profile = await get_student_profile(student_id)
@@ -367,7 +558,7 @@ async def simulate_scenario(student_id: str, body: dict):
         "assignment_delta":  float(body.get("assignment_delta", 0)),
         "study_hours_delta": float(body.get("study_hours_delta", 0)),
     }
-    add_explanation = body.get("explain", False)  # frontend requests Bedrock explanation
+    add_explanation = body.get("explain", False)  # frontend requests LLM explanation
 
     baseline_profile = copy.deepcopy(profile)
     baseline = compute_predicted_cgpa(baseline_profile)
@@ -388,10 +579,10 @@ async def simulate_scenario(student_id: str, body: dict):
             "status":  s_subj.get("status", b_subj.get("status", "safe")),
         })
 
-    # Bedrock explanation (async, optional)
+    # LLM explanation (async, optional)
     explanation = ""
     if add_explanation:
-        explanation = await run_bedrock_sim_explanation(
+        explanation = await run_sim_explanation(
             profile, improvement, baseline["cgpa"], sim["cgpa"]
         )
 
@@ -411,12 +602,12 @@ async def simulate_scenario(student_id: str, body: dict):
 @app.get("/student/{student_id}/predictions")
 async def get_predictions(student_id: str):
     """
-    Agentic prediction endpoint — 2-phase Bedrock (ChatGPT 120b) deep analysis.
+    Agentic prediction endpoint — 2-phase NVIDIA NIM (llama-3.3-70b-instruct) deep analysis.
     Phase 1: structured JSON (risk scores, arrear risk, critical moves)
     Phase 2: markdown narrative (conversational tutor-style explanation)
-    Falls back to Groq if Bedrock is unavailable.
+    Falls back to Groq if NVIDIA NIM is unavailable.
     """
-    from agents.prediction import compute_predicted_cgpa, run_bedrock_analysis, build_prediction_fallback
+    from agents.prediction import compute_predicted_cgpa, run_llm_analysis, build_prediction_fallback
 
     profile = await get_student_profile(student_id)
 
@@ -440,14 +631,14 @@ async def get_predictions(student_id: str):
         }
     subjects = profile.get("subjects") or []
 
-    # 2-phase Bedrock deep analysis (async)
+    # 2-phase LLM deep analysis (async)
     try:
-        analysis = await run_bedrock_analysis(profile, learning_dna)
+        analysis = await run_llm_analysis(profile, learning_dna)
     except Exception as e:
         logger.warning(f"Prediction analysis failed for {student_id}: {e}")
         analysis = build_prediction_fallback(profile)
 
-    # Build per-subject prediction list (merge numeric + Bedrock deep_dive)
+    # Build per-subject prediction list (merge numeric + LLM deep_dive)
     deep_by_code = {d["code"]: d for d in analysis.get("subject_deep_dive", [])}
     subject_predictions = []
     for s in subjects:
@@ -480,7 +671,7 @@ async def get_predictions(student_id: str):
         "predicted_cgpa":      numeric["cgpa"],
         "cgpa_range":          numeric["range"],
         "confidence":          numeric.get("confidence", 0.7),
-        # Bedrock supplemented verdict
+        # LLM supplemented verdict
         "cgpa_verdict":        cgpa_verdict,
         "trajectory_signal":   analysis.get("trajectory_signal", "stable"),
         "trajectory_reason":   analysis.get("trajectory_reason", ""),
@@ -490,7 +681,7 @@ async def get_predictions(student_id: str):
         "arrear_risk":         analysis.get("arrear_risk", []),
         "risk_subject_count":  len(risk_subjects),
         "watch_subject_count": len(watch_subjects),
-        # Bedrock actionable intelligence
+        # LLM actionable intelligence
         "critical_moves":      analysis.get("critical_moves", []),
         "study_dna_impact":    analysis.get("study_dna_impact", ""),
         # LLM-generated markdown narrative
@@ -885,11 +1076,12 @@ async def get_proactive_briefing(student_id: str):
     alerts.sort(key=lambda x: x["priority"])
     top_alerts = alerts[:5]
 
-    # ── AI-Generated Morning Brief ────────────────────────────────────────
-    # ChatGPT (Amazon Bedrock) synthesizes real ERP alerts into a conversational brief.
+    # ── AI-Generated Morning Brief (NVIDIA NIM / Groq fallback) ─────────────
     ai_brief = None
     try:
-        import boto3
+        from langchain_openai import ChatOpenAI
+        from langchain_groq import ChatGroq
+        from langchain_core.messages import SystemMessage, HumanMessage
 
         risk_subjects = [s["name"] for s in profile.get("subjects", []) if s.get("status") == "risk"]
         watch_subjects = [s["name"] for s in profile.get("subjects", []) if s.get("status") == "watch"]
@@ -915,27 +1107,27 @@ async def get_proactive_briefing(student_id: str):
             "Write the morning brief now."
         )
 
-        # Build boto3 client — use bearer token if available, else IAM keys
-        bedrock_kwargs: dict = {"region_name": settings.aws_region}
-        bearer = settings.aws_bearer_token_bedrock or settings.bedrock_api_key or ""
-        if bearer:
-            # boto3 picks up AWS_BEARER_TOKEN_BEDROCK from env automatically
-            import os
-            os.environ.setdefault("AWS_BEARER_TOKEN_BEDROCK", bearer)
+        if settings.nvidia_api_key:
+            llm = ChatOpenAI(
+                api_key=settings.nvidia_api_key,
+                base_url=settings.nvidia_base_url,
+                model=settings.nvidia_model,
+                temperature=0.7,
+                max_tokens=150,
+            )
         else:
-            bedrock_kwargs["aws_access_key_id"] = settings.aws_access_key_id
-            bedrock_kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
+            llm = ChatGroq(
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+                temperature=0.7,
+                max_tokens=150,
+            )
 
-
-        client = boto3.client("bedrock-runtime", **bedrock_kwargs)
-
-        response = client.converse(
-            modelId=settings.bedrock_model_id,
-            system=[{"text": BRIEF_SYSTEM}],
-            messages=[{"role": "user", "content": [{"text": brief_prompt}]}],
-            inferenceConfig={"maxTokens": 150, "temperature": 0.7},
-        )
-        ai_brief = response["output"]["message"]["content"][0]["text"].strip()
+        result = await llm.ainvoke([
+            SystemMessage(content=BRIEF_SYSTEM),
+            HumanMessage(content=brief_prompt),
+        ])
+        ai_brief = (result.content or "").strip()
 
     except Exception as e:
         logger.warning(f"AI brief generation failed (non-fatal): {e}")
@@ -1336,35 +1528,26 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
             yield f"event: session_id\ndata: {json.dumps({'session_id': session_id})}\n\n"
             full_text = None
 
-            # ── Try Bedrock first (inference profile via converse API) ────────
-            use_bedrock = (
-                settings.aws_access_key_id and settings.aws_secret_access_key
-            )
-            if use_bedrock:
+            # ── Try NVIDIA NIM first, fall back to Groq ───────────────────────
+            full_text = None
+            if settings.nvidia_api_key:
                 try:
-                    import boto3
-                    from asyncio import get_event_loop
-                    client_bedrock = boto3.client(
-                        "bedrock-runtime",
-                        region_name=settings.aws_region,
-                        aws_access_key_id=settings.aws_access_key_id,
-                        aws_secret_access_key=settings.aws_secret_access_key,
+                    from langchain_openai import ChatOpenAI
+                    llm_nvidia = ChatOpenAI(
+                        api_key=settings.nvidia_api_key,
+                        base_url=settings.nvidia_base_url,
+                        model=settings.nvidia_model,
+                        temperature=0.5,
+                        max_tokens=4000,
                     )
-
-                    def _bedrock_call():
-                        return client_bedrock.converse(
-                            modelId=settings.bedrock_model_id,
-                            system=[{"text": system_prompt}],
-                            messages=[{"role": "user", "content": [{"text": f"Teach me: {topic}"}]}],
-                            inferenceConfig={"maxTokens": 4000, "temperature": 0.5},
-                        )
-
-                    loop = get_event_loop()
-                    br_response = await loop.run_in_executor(None, _bedrock_call)
-                    full_text = br_response["output"]["message"]["content"][0]["text"]
-                    logger.info(f"Bedrock converse succeeded for topic: {topic}")
-                except Exception as be:
-                    logger.warning(f"Bedrock call failed ({be}), falling back to Groq")
+                    result = await llm_nvidia.ainvoke([
+                        SystemMessage(content=system_prompt),
+                        HumanMessage(content=f"Teach me: {topic}"),
+                    ])
+                    full_text = result.content or ""
+                    logger.info(f"NVIDIA NIM lesson generated for topic: {topic}")
+                except Exception as ne:
+                    logger.warning(f"NVIDIA NIM call failed ({ne}), falling back to Groq")
                     full_text = None
 
             # ── Groq fallback ─────────────────────────────────────────────────
@@ -1589,26 +1772,19 @@ Answer their follow-up question in 2–4 short paragraphs. Be conversational and
 
     try:
         llm = None
-        use_bedrock = (
-            (settings.aws_access_key_id and settings.aws_secret_access_key)
-            or bool(settings.bedrock_api_key)
-        )
-        if use_bedrock:
+        # Try NVIDIA NIM first, fall back to Groq
+        if settings.nvidia_api_key:
             try:
-                from langchain_aws import ChatBedrock
-                kwargs = {
-                    "region_name": settings.aws_region,
-                    "model_id": settings.bedrock_model_id,
-                    "model_kwargs": {"temperature": 0.4, "max_tokens": 800},
-                }
-                if settings.aws_access_key_id and settings.aws_secret_access_key:
-                    kwargs["aws_access_key_id"] = settings.aws_access_key_id
-                    kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
-                elif settings.bedrock_api_key:
-                    kwargs["bedrock_api_key"] = settings.bedrock_api_key
-                llm = ChatBedrock(**kwargs)
-            except Exception as be:
-                logger.warning(f"Bedrock init failed, using Gemini: {be}")
+                from langchain_openai import ChatOpenAI
+                llm = ChatOpenAI(
+                    api_key=settings.nvidia_api_key,
+                    base_url=settings.nvidia_base_url,
+                    model=settings.nvidia_model,
+                    temperature=0.4,
+                    max_tokens=800,
+                )
+            except Exception as ne:
+                logger.warning(f"NVIDIA NIM init failed, using Groq: {ne}")
                 llm = None
         if llm is None:
             from langchain_groq import ChatGroq
@@ -1644,7 +1820,7 @@ Answer their follow-up question in 2–4 short paragraphs. Be conversational and
     except Exception as invoke_err:
         err_msg = (getattr(invoke_err, "message", None) or str(invoke_err)).lower()
         if "accessdenied" in err_msg or "authentication failed" in err_msg or "api key" in err_msg:
-            logger.warning(f"Bedrock auth failed ({invoke_err}), falling back to Groq")
+            logger.warning(f"LLM auth failed ({invoke_err}), falling back to Groq")
             from langchain_groq import ChatGroq
             llm = ChatGroq(
                 api_key=settings.groq_api_key,
@@ -1958,23 +2134,21 @@ async def get_voice_settings(student_id: str):
     Return available voice personalities and TTS provider info.
     Frontend uses this to populate the voice selector UI.
     """
-    from nova_sonic import VOICE_PERSONALITIES, NOVA_SONIC_MODEL_ID
-    has_aws = bool(settings.aws_access_key_id and settings.aws_secret_access_key)
+    from nova_sonic import VOICE_PERSONALITIES
     return {
         "student_id": student_id,
-        "tts_provider": "amazon-nova-sonic" if has_aws else "browser-tts",
-        "tts_model": NOVA_SONIC_MODEL_ID if has_aws else None,
+        "tts_provider": "browser-tts",
+        "tts_model": None,
         "voices": [
             {
                 "id": key,
                 "label": cfg["description"],
-                "voiceId": cfg["voiceId"],
             }
             for key, cfg in VOICE_PERSONALITIES.items()
         ],
         "default_voice": "professor",
         "sample_rate": 24000,
-        "fallback_available": has_aws,  # Polly is always available if AWS creds are set
+        "fallback_available": True,  # browser TTS is always available
     }
 
 
@@ -2001,34 +2175,9 @@ async def tutor_voice_speak(student_id: str, body: dict):
 
     text = text[:max_chars]
 
-    has_aws = bool(settings.aws_access_key_id and settings.aws_secret_access_key)
-    if not has_aws:
-        # No AWS creds — signal frontend to use browser TTS
-        from fastapi.responses import Response
-        return Response(status_code=204)
-
-    tts = get_tts(settings)
-
-    async def audio_stream():
-        try:
-            audio_bytes = await tts.synthesize(text, voice)
-            if not audio_bytes:
-                return
-            chunk_size = 8192
-            for i in range(0, len(audio_bytes), chunk_size):
-                yield audio_bytes[i:i + chunk_size]
-        except Exception as e:
-            logger.error(f"Voice speak streaming error: {e}", exc_info=True)
-
-    return StreamingResponse(
-        audio_stream(),
-        media_type="audio/wav",
-        headers={
-            "Cache-Control": "no-cache",
-            "X-Voice-Personality": voice,
-            "X-Sample-Rate": "24000",
-        },
-    )
+    # Server-side TTS is stubbed (browser handles TTS via Web Speech API)
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 
 @app.post("/student/{student_id}/tutor/voice/transcribe")
@@ -2040,33 +2189,8 @@ async def tutor_voice_transcribe(student_id: str, request: Request):
     Falls back to empty transcript if AWS creds are not set (browser STT handles it).
     """
     from nova_sonic import get_stt
-
-    has_aws = bool(settings.aws_access_key_id and settings.aws_secret_access_key)
-    if not has_aws:
-        return {"transcript": "", "language": "en-US", "provider": "browser-stt"}
-
-    content_type = request.headers.get("content-type", "audio/webm")
-    audio_bytes = await request.body()
-
-    if not audio_bytes:
-        raise HTTPException(status_code=400, detail="No audio data in request body")
-
-    if len(audio_bytes) < 100:
-        raise HTTPException(status_code=400, detail="Audio too short to transcribe")
-
-    stt = get_stt(settings)
-    try:
-        transcript = await stt.transcribe_audio(audio_bytes, content_type)
-        return {
-            "transcript": transcript,
-            "language": "en-US",
-            "provider": "amazon-transcribe",
-            "char_count": len(transcript),
-        }
-    except Exception as e:
-        logger.error(f"STT transcription error: {e}", exc_info=True)
-        # Return empty — frontend falls back to browser STT
-        return {"transcript": "", "language": "en-US", "provider": "browser-stt", "error": str(e)}
+    # Server-side STT is stubbed (browser handles STT via Web Speech API)
+    return {"transcript": "", "language": "en-US", "provider": "browser-stt"}
 
 
 

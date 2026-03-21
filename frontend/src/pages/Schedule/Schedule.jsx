@@ -381,7 +381,7 @@ export default function Schedule() {
         else { setLoading(true); setSchedule(null); }
         setError(null);
         try {
-            const data = await getMySchedule();
+            const data = await getMySchedule({ forceRefresh: isRegen === true });
             setSchedule(data);
         } catch {
             setError('Could not load your schedule. Please try again.');

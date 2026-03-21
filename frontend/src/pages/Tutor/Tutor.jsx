@@ -13,6 +13,7 @@ import {
     BarChart3, Code2, Users, History, BookMarked, Globe,
 } from 'lucide-react';
 import mermaid from 'mermaid';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import styles from './Tutor.module.css';
 import {
     getTutorOptions, startTutorLesson, askTutorQuestion, clearTutorSession,
@@ -220,9 +221,13 @@ function Canvas({ code, title, stepNum, totalSteps }) {
                     </div>
                 )}
                 {svg && !rendering && (
-                    <div className={styles.canvasDiagramCard}>
-                        <div ref={svgRef} className={styles.canvasSvg} dangerouslySetInnerHTML={{ __html: svg }} />
-                    </div>
+                    <TransformWrapper minScale={0.5} maxScale={4} initialScale={1} centerOnInit smooth>
+                        <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }}>
+                            <div className={styles.canvasDiagramCard}>
+                                <div ref={svgRef} className={styles.canvasSvg} dangerouslySetInnerHTML={{ __html: svg }} />
+                            </div>
+                        </TransformComponent>
+                    </TransformWrapper>
                 )}
             </div>
             {totalSteps > 0 && (
@@ -409,7 +414,7 @@ export default function Tutor() {
     const [currentStep, setCurrentStep] = useState(0);
     const [currentDiagram, setCurrentDiagram] = useState('');
     const [diagramTitle, setDiagramTitle] = useState('');
-    const [narrationLog, setNarrationLog] = useState([]);
+    const [currentSubtitle, setCurrentSubtitle] = useState('');
     const [lessonDone, setLessonDone] = useState(false);
     const [lessonErr, setLessonErr] = useState(null);
     const narrationEndRef = useRef(null);
@@ -589,15 +594,26 @@ export default function Tutor() {
             .finally(() => { setAsking(false); lastSentTranscriptRef.current = ''; });
     }, [talkMode, speech.listening, speech.transcript, selSubject, selTopic, qaThread, sessionId, speech.voiceEnabled, speech.setTranscript, speech.speak]);
 
-    // Auto-scroll narration
+    // Voice Interruption (Spacebar)
     useEffect(() => {
-        narrationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [narrationLog]);
+        const handleKeyDown = (e) => {
+            if (e.code === 'Space') {
+                const tg = e.target.tagName;
+                if (tg !== 'INPUT' && tg !== 'TEXTAREA' && tg !== 'BUTTON') {
+                    e.preventDefault();
+                    speech.stop();
+                    window.dispatchEvent(new CustomEvent('stop-tutor-audio'));
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [speech]);
 
     const resetLesson = () => {
         speech.stop();
         setSelTopic(null); setTeaching(false); setSteps([]); setCurrentStep(0);
-        setCurrentDiagram(''); setDiagramTitle(''); setNarrationLog([]);
+        setCurrentDiagram(''); setDiagramTitle(''); setCurrentSubtitle('');
         setLessonDone(false); setLessonErr(null); setQaThread([]);
         setQuestionInput(''); setAskErr(null); setSessionId(null);
         setLessonPlan(null); setLessonStarted(false); setPaused(false); setCheckpoint(null);
@@ -607,7 +623,7 @@ export default function Tutor() {
 
     const resetLessonData = () => {
         setTeaching(false); setSteps([]); setCurrentStep(0);
-        setCurrentDiagram(''); setDiagramTitle(''); setNarrationLog([]);
+        setCurrentDiagram(''); setDiagramTitle(''); setCurrentSubtitle('');
         setLessonDone(false); setLessonErr(null); setQaThread([]);
         setQuestionInput(''); setAskErr(null); setPaused(false); setCheckpoint(null);
         setEquations([]); setCodeBlocks([]);
@@ -643,7 +659,7 @@ export default function Tutor() {
         if (!selTopic || !selSubject) return;
         setLessonStarted(true);
         setTeaching(true); setSteps([]); setCurrentStep(0);
-        setCurrentDiagram(''); setDiagramTitle(''); setNarrationLog([]);
+        setCurrentDiagram(''); setDiagramTitle(''); setCurrentSubtitle('');
         setLessonDone(false); setLessonErr(null);
         setPaused(false); setCheckpoint(null);
         setEquations([]); setCodeBlocks([]);
@@ -679,7 +695,7 @@ export default function Tutor() {
                                 setCurrentStep(data.step);
                                 setDiagramTitle(data.title);
                             } else if (evt === 'narration') {
-                                setNarrationLog(p => [...p, { type: 'text', text: data.text }]);
+                                setCurrentSubtitle(data.text);
                                 speech.speak(data.text);
                                 // Also queue for Nova Sonic if panel is open
                                 if (showVoicePanel) {
@@ -689,10 +705,8 @@ export default function Tutor() {
                                 setCurrentDiagram(data.mermaid);
                                 if (data.title) setDiagramTitle(data.title);
                             } else if (evt === 'equation') {
-                                setNarrationLog(p => [...p, { type: 'equation', latex: data.latex, display: data.display }]);
                                 setEquations(p => [...p, data]);
                             } else if (evt === 'code_block') {
-                                setNarrationLog(p => [...p, { type: 'code', ...data }]);
                                 setCodeBlocks(p => [...p, data]);
                             } else if (evt === 'checkpoint') {
                                 setCheckpoint({ ...data, subjectCode: selSubject.code });
@@ -1141,41 +1155,31 @@ export default function Tutor() {
                                             planSteps={lessonPlan?.steps || []}
                                         />
                                     )}
-                                </div>
 
-                                {/* Teacher avatar + Narration */}
-                                <div className={styles.narrationRow}>
-                                    <TeacherAvatar speaking={speech.speaking} />
-                                    <div className={styles.narrationLog}>
-                                        {narrationLog.length === 0 && teaching && (
-                                            <p className={styles.narrationLine} style={{ color: 'var(--text-3)', fontStyle: 'italic' }}>
-                                                Tutor is preparing your lesson…
-                                            </p>
-                                        )}
-                                        {narrationLog.map((item, i) => {
-                                            if (item.type === 'equation') {
-                                                return (
-                                                    <div key={i} style={{ margin: '4px 0' }}>
-                                                        <EquationBlock latex={item.latex} display={item.display || 'block'} />
-                                                    </div>
-                                                );
-                                            }
-                                            if (item.type === 'code') {
-                                                return (
-                                                    <CodeWalkthrough
-                                                        key={i}
-                                                        language={item.language}
-                                                        code={item.code}
-                                                        highlight_lines={item.highlight_lines}
-                                                        explanation={item.explanation}
-                                                        step={item.step}
-                                                    />
-                                                );
-                                            }
-                                            return <NarrationLine key={i} text={item.text} />;
-                                        })}
-                                        <div ref={narrationEndRef} />
-                                    </div>
+                                    {/* Cinematic Subtitles Overlay */}
+                                    {(currentSubtitle || (teaching && !currentSubtitle)) && (
+                                        <div className={styles.subtitleContainer}>
+                                            <div className={styles.subtitleOverlay}>
+                                                {currentSubtitle || "Tutor is preparing your lesson…"}
+                                            </div>
+                                            <div className={styles.subtitleControls}>
+                                                <button 
+                                                    onClick={speech.toggleVoice} 
+                                                    className={styles.subCtrlBtn} 
+                                                    title={speech.voiceEnabled ? "Mute Voice" : "Unmute Voice"}
+                                                >
+                                                    {speech.voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                                                </button>
+                                                <button 
+                                                    onClick={speech.listening ? speech.stopListening : speech.startListening} 
+                                                    className={`${styles.subCtrlBtn} ${speech.listening ? styles.subCtrlMicActive : ''}`}
+                                                    title={speech.listening ? "Stop Mic" : "Start Mic"}
+                                                >
+                                                    {speech.listening ? <Mic size={18} /> : <MicOff size={18} />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Q&A Panel */}

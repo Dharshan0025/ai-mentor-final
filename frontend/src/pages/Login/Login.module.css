@@ -8,7 +8,7 @@
 /* ── Left panel ───────────────────────────────────────────────────────── */
 .left {
     position: relative;
-    background: linear-gradient(145deg, #0f0f11 0%, #1a1118 50%, #0d1520 100%);
+    background: var(--surface-2, #1E1E1E);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -44,14 +44,14 @@
 .logoIcon {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, #FF7A00, #FF4500);
-    border-radius: 8px;
+    background: var(--surface-2, #1E1E1E);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     font-size: 1rem;
-    box-shadow: 0 4px 16px rgba(255, 122, 0, 0.4);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .logoText {
@@ -76,7 +76,7 @@
 }
 
 .accent {
-    background: linear-gradient(90deg, #FF7A00, #FF4500);
+    background: var(--surface-2, #1E1E1E);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -97,9 +97,9 @@
 }
 
 .stat {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    background-color: var(--surface-2, #1E1E1E);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 1rem 0.75rem;
     display: flex;
     flex-direction: column;
@@ -109,7 +109,7 @@
 }
 
 .stat:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: var(--surface-2, #1E1E1E);
 }
 
 .statIcon {
@@ -146,8 +146,8 @@
     max-width: 440px;
     background: var(--surface, #fff);
     border: 1px solid var(--border-light, #e5e5e5);
-    border-radius: 20px;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -198,7 +198,7 @@
     align-items: center;
     gap: 5px;
     padding: 5px 10px;
-    border-radius: 8px;
+    border-radius: 0;
     border: 1px solid var(--border-light, #e5e5e5);
     background: var(--surface-2, #f8f8f8);
     font-size: 0.75rem;
@@ -253,7 +253,7 @@
 .input {
     width: 100%;
     padding: 10px 14px;
-    border-radius: 10px;
+    border-radius: 0;
     border: 1.5px solid var(--border-light, #e5e5e5);
     background: var(--surface-2, #f9f9f9);
     font-size: 0.9375rem;
@@ -265,8 +265,8 @@
 
 .input:focus {
     border-color: #FF7A00;
-    box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.12);
-    background: #fff;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    background-color: var(--surface, #141414);
 }
 
 .inputError {
@@ -274,7 +274,7 @@
 }
 
 .inputError:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 /* Password wrapper */
@@ -312,8 +312,8 @@
     gap: 8px;
     padding: 10px 12px;
     background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 8px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.8125rem;
     color: #EF4444;
     font-weight: 500;
@@ -331,9 +331,9 @@
     justify-content: center;
     gap: 8px;
     padding: 13px 20px;
-    border-radius: 10px;
+    border-radius: 0;
     border: none;
-    background: linear-gradient(135deg, #FF7A00, #FF4500);
+    background: var(--surface-2, #1E1E1E);
     color: #fff;
     font-size: 0.9375rem;
     font-weight: 600;
@@ -341,7 +341,7 @@
     transition: opacity 150ms ease, transform 150ms ease;
     width: 100%;
     font-family: inherit;
-    box-shadow: 0 4px 16px rgba(255, 122, 0, 0.35);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .submitBtn:hover:not(:disabled) {
@@ -364,7 +364,7 @@
     height: 18px;
     border: 2.5px solid rgba(255, 255, 255, 0.35);
     border-top-color: #fff;
-    border-radius: 50%;
+    border-radius: 0;
     animation: spin 0.7s linear infinite;
     display: inline-block;
 }

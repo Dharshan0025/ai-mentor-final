@@ -7,7 +7,7 @@
     padding: 8px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .collapseBtn {
@@ -27,7 +27,7 @@
     display: flex; align-items: center; justify-content: center;
     background: var(--bg, #F4F1EC);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 7px; cursor: pointer;
+    border-radius: 0; cursor: pointer;
     color: var(--text-2, #5C4A35);
     transition: all 0.12s;
 }
@@ -36,7 +36,7 @@
 
 .swatch {
     width: 20px; height: 20px;
-    border-radius: 50%; cursor: pointer;
+    border-radius: 0; cursor: pointer;
     border: 2px solid transparent;
     transition: transform 0.12s;
     flex-shrink: 0;
@@ -59,8 +59,8 @@
     width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
     background: rgba(239,68,68,0.08); color: #DC2626;
-    border: 1px solid rgba(239,68,68,0.2);
-    border-radius: 7px; cursor: pointer;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0; cursor: pointer;
     transition: background 0.12s;
 }
 .clearBtn:hover { background: rgba(239,68,68,0.18); }

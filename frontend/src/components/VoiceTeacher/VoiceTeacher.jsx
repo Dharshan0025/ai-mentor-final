@@ -43,6 +43,8 @@ const PERSONALITIES = [
 ];
 
 // ── Audio playback via Web Audio API ──────────────────────────────────────
+let currentAudioSource = null;
+
 async function playWavArrayBuffer(arrayBuffer, audioCtxRef, gainValue = 1.0) {
     if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -50,8 +52,14 @@ async function playWavArrayBuffer(arrayBuffer, audioCtxRef, gainValue = 1.0) {
     const ctx = audioCtxRef.current;
     if (ctx.state === 'suspended') await ctx.resume();
 
+    if (currentAudioSource) {
+        try { currentAudioSource.stop(); } catch(e){}
+    }
+
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     const source = ctx.createBufferSource();
+    currentAudioSource = source;
+    
     const gainNode = ctx.createGain();
     gainNode.gain.value = gainValue;
 
@@ -59,7 +67,19 @@ async function playWavArrayBuffer(arrayBuffer, audioCtxRef, gainValue = 1.0) {
     source.connect(gainNode);
     gainNode.connect(ctx.destination);
     source.start(0);
-    return new Promise(resolve => { source.onended = resolve; });
+    return new Promise(resolve => { 
+        source.onended = () => {
+            if (currentAudioSource === source) currentAudioSource = null;
+            resolve();
+        }; 
+    });
+}
+
+export function stopNovaSonicAudio() {
+    if (currentAudioSource) {
+        try { currentAudioSource.stop(); } catch(e){}
+        currentAudioSource = null;
+    }
 }
 
 // ── Browser TTS fallback ───────────────────────────────────────────────────
@@ -121,7 +141,19 @@ export default function VoiceTeacher({
 
     // Process speak queue
     useEffect(() => {
-        if (!enabled || processingRef.current || speakQueue.length === 0) return;
+        const handleStopAudio = () => {
+            stopNovaSonicAudio();
+            window.speechSynthesis?.cancel();
+            speakQueueRef.current = [];
+            setSpeaking(false);
+            processingRef.current = false;
+        };
+        window.addEventListener('stop-tutor-audio', handleStopAudio);
+
+        if (!enabled || processingRef.current || speakQueue.length === 0) {
+            return () => window.removeEventListener('stop-tutor-audio', handleStopAudio);
+        }
+        
         const item = speakQueue[0];
         processingRef.current = true;
         speakText(item.text, item.personality || personality)
@@ -129,6 +161,8 @@ export default function VoiceTeacher({
                 processingRef.current = false;
                 onSpeakQueueItem?.(item);
             });
+
+        return () => window.removeEventListener('stop-tutor-audio', handleStopAudio);
     }, [speakQueue, enabled, personality]);
 
     const speakText = useCallback(async (text, voicePersonality = personality) => {

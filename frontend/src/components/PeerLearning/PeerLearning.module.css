@@ -11,7 +11,7 @@
 }
 .panel {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 2px solid var(--border, #333333);
     border-radius: var(--radius-lg, 16px);
     width: 100%;
     max-width: 560px;
@@ -19,14 +19,14 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: var(--shadow-xl, 0 24px 48px rgba(0,0,0,.35));
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 .header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border, #333333);
     gap: 12px;
 }
 .header h3 { font-size: 0.95rem; font-weight: 600; margin: 0 0 2px; color: var(--text-1); }
@@ -52,7 +52,7 @@
     color: var(--text-3);
     font-size: 1rem;
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: 0;
 }
 .close:hover { background: var(--hover); color: var(--text-1); }
 
@@ -65,8 +65,8 @@
 }
 .lobbyCard {
     background: var(--surface-2, var(--hover));
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -77,8 +77,8 @@
 .divider    { text-align: center; font-size: 0.75rem; color: var(--text-3); }
 .codeInput {
     padding: 8px 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     background: var(--surface);
     color: var(--text-1);
     font-size: 0.85rem;
@@ -90,7 +90,7 @@
     background: var(--accent);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     padding: 8px 16px;
     font-size: 0.8rem;
     font-weight: 600;
@@ -114,7 +114,7 @@
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-2);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border, #333333);
     background: var(--surface-2, var(--hover));
 }
 .messages {
@@ -131,9 +131,9 @@
 .msgName { font-size: 0.65rem; color: var(--text-3); margin-left: 2px; }
 .msgBubble {
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: 0;
     background: var(--surface-2, var(--hover));
-    border: 1px solid var(--border);
+    border: 2px solid var(--border, #333333);
     font-size: 0.8rem;
     color: var(--text-1);
     word-break: break-word;
@@ -147,12 +147,12 @@
     display: flex;
     gap: 8px;
     padding: 10px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border, #333333);
 }
 .msgInput {
     flex: 1;
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 8px 12px;
     font-size: 0.8rem;
     background: var(--surface);
@@ -166,7 +166,7 @@
     background: var(--accent);
     color: #fff;
     border: none;
-    border-radius: 10px;
+    border-radius: 0;
     padding: 0 16px;
     font-size: 1rem;
     cursor: pointer;

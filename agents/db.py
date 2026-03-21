@@ -309,9 +309,23 @@ class Database:
         """
         current = await self.get_learning_dna(student_college_id)
 
-        weak_topics = list(current.get("weak_topics") or [])
-        strong_topics = list(current.get("strong_topics") or [])
-        quiz_history = list(current.get("quiz_history") or [])
+        import json
+        
+        def _parse_json_list(val):
+            if not val:
+                return []
+            if isinstance(val, str):
+                try:
+                    return json.loads(val)
+                except Exception:
+                    return []
+            if isinstance(val, list):
+                return list(val)
+            return []
+
+        weak_topics = _parse_json_list(current.get("weak_topics"))
+        strong_topics = _parse_json_list(current.get("strong_topics"))
+        quiz_history = _parse_json_list(current.get("quiz_history"))
 
         if weak_topics_append:
             weak_topics.extend(weak_topics_append)
@@ -362,9 +376,9 @@ class Database:
                 """,
                 student_college_id,
                 new_preferred_style,
-                weak_topics,
-                strong_topics,
-                quiz_history,
+                json.dumps(weak_topics),
+                json.dumps(strong_topics),
+                json.dumps(quiz_history),
                 total_questions,
                 total_quizzes,
                 correct_answers,
@@ -535,6 +549,34 @@ class Database:
                 student_db_id, title,
             )
             return str(row["id"])
+
+    async def ensure_chat_session(self, session_id: str, student_db_id: int, title: str = "Chat Session") -> None:
+        """Ensure a chat session exists with the given session ID."""
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO chat_sessions (id, student_id, title) 
+                VALUES ($1, $2, $3) 
+                ON CONFLICT (id) DO NOTHING
+                """,
+                session_id, student_db_id, title
+            )
+
+    async def get_chat_sessions(self, student_db_id: int, limit: int = 15) -> list[dict]:
+        """Retrieve recent chat sessions for a student."""
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT id, title, created_at, last_active 
+                FROM chat_sessions 
+                WHERE student_id=$1 
+                ORDER BY last_active DESC LIMIT $2
+                """,
+                student_db_id, limit,
+            )
+            return [dict(r) for r in rows]
 
     async def save_message(self, session_id: str, student_db_id: int, role: str, content: str,
                            agent: str = None, citations: list = None, model_used: str = None, lang: str = "en") -> str:

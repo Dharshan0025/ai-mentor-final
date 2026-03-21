@@ -3,7 +3,7 @@
 .widget {
     background: var(--surface, #FFFDF7);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 14px;
+    border-radius: 0;
     padding: 16px;
     display: flex; flex-direction: column; gap: 10px;
 }
@@ -34,7 +34,7 @@
 
 .row {
     display: flex; align-items: center; gap: 8px;
-    padding: 7px 10px; border-radius: 8px;
+    padding: 7px 10px; border-radius: 0;
     background: var(--bg, #F4F1EC);
     font-size: 0.8rem; transition: background 0.12s;
 }
@@ -57,6 +57,6 @@
 .level {
     font-size: 0.68rem; font-weight: 700;
     padding: 1px 6px;
-    background: rgba(99,102,241,0.1); color: #4F46E5;
-    border-radius: 10px;
+    background: rgba(99,102,241,0.1); color: var(--accent, #CCFF00);
+    border-radius: 0;
 }

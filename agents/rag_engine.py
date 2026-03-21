@@ -1,7 +1,7 @@
 """
 RAG Engine — LangChain + Supabase pgvector
 Upgraded V2: adds query/retrieval functions on top of the existing
-PDF ingestion pipeline. Uses AWS Bedrock Titan Embeddings.
+PDF ingestion pipeline. Uses HuggingFace all-MiniLM-L6-v2 Embeddings.
 
 Functions:
   - ingest_pdf()            — existing PDF ingestion (unchanged)
@@ -17,7 +17,6 @@ import logging
 from typing import Optional
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_aws import BedrockEmbeddings
 from db import db, get_pool, close_pool
 from config import settings
 
@@ -25,16 +24,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Embedding singleton ────────────────────────────────────────────────────
-_embeddings: Optional[BedrockEmbeddings] = None
+_embeddings = None
 
 
-def _get_embeddings() -> BedrockEmbeddings:
+def _get_embeddings():
     global _embeddings
     if _embeddings is None:
-        _embeddings = BedrockEmbeddings(
-            model_id="amazon.titan-embed-text-v2:0",
-            region_name=settings.aws_region,
-        )
+        from langchain_huggingface import HuggingFaceEmbeddings
+        _embeddings = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
     return _embeddings
 
 

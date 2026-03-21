@@ -10,11 +10,11 @@
 .card {
     background: var(--surface, #FFFDF7);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 16px;
+    border-radius: 0;
     padding: 24px;
     width: 90%; max-width: 480px;
     display: flex; flex-direction: column; gap: 14px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    box-shadow: 4px 4px 0px var(--accent, #CCFF00);
 }
 
 .topRow {
@@ -23,13 +23,13 @@
 .badge {
     padding: 3px 10px;
     background: rgba(255,122,0,0.12); color: var(--accent,#FF7A00);
-    border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+    border-radius: 0; font-size: 0.78rem; font-weight: 700;
 }
 .progress { font-size: 0.8rem; color: var(--text-3,#8B7355); margin-left: auto; }
 .closeBtn {
     display: flex; align-items: center; gap: 5px;
     padding: 4px 10px; background: #FFF0E8; color: #CC5500;
-    border: 1px solid #FFD4B0; border-radius: 6px;
+    border: 2px solid var(--border, #333333); border-radius: 0;
     font-size: 0.76rem; font-weight: 600; cursor: pointer;
     transition: background 0.15s;
 }
@@ -38,7 +38,7 @@
 .questionBox {
     padding: 16px;
     background: var(--bg,#F4F1EC);
-    border-radius: 10px;
+    border-radius: 0;
     border: 1px solid var(--border,#E8E0D5);
 }
 
@@ -61,7 +61,7 @@
 .options { display: flex; flex-wrap: wrap; gap: 6px; }
 .optChip {
     padding: 3px 10px;
-    border-radius: 6px;
+    border-radius: 0;
     background: var(--surface,#FFFDF7);
     border: 1px solid var(--border,#E8E0D5);
     font-size: 0.78rem; color: var(--text-2,#5C4A35);
@@ -76,23 +76,23 @@
 .transcriptBox {
     padding: 10px 14px;
     background: rgba(59,130,246,0.06);
-    border: 1px solid rgba(59,130,246,0.2);
-    border-radius: 8px;
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     font-size: 0.83rem; color: var(--text-2,#5C4A35);
 }
 .txLabel { font-weight: 700; margin-right: 4px; }
 
 .resultBar {
     display: flex; align-items: center; gap: 8px;
-    padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    padding: 10px 14px; border-radius: 0; font-size: 0.85rem; font-weight: 600;
 }
-.correct { background: rgba(16,185,129,0.1); color: #065F46; border: 1px solid #10B981; }
-.wrong   { background: rgba(239,68,68,0.08); color: #991B1B; border: 1px solid #EF4444; }
+.correct { background: rgba(16,185,129,0.1); color: #065F46; border: 2px solid var(--border, #333333); }
+.wrong   { background: rgba(239,68,68,0.08); color: #991B1B; border: 2px solid var(--border, #333333); }
 
 .nextBtn {
     display: flex; align-items: center; justify-content: center; gap: 6px;
     padding: 10px 20px; background: var(--accent,#FF7A00); color: #fff;
-    border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 700;
+    border: none; border-radius: 0; font-size: 0.88rem; font-weight: 700;
     cursor: pointer; transition: background 0.15s;
 }
 .nextBtn:hover { background: #CC5500; }
@@ -115,7 +115,7 @@
 }
 .scoreRing {
     width: 80px; height: 80px;
-    border-radius: 50%;
+    border-radius: 0;
     background: conic-gradient(#FF7A00 var(--pct, 60%), var(--bg,#F4F1EC) 0);
     display: flex; align-items: center; justify-content: center;
     flex-direction: column;
@@ -125,5 +125,5 @@
 .doneMsg  { font-size: 1rem; font-weight: 700; color: var(--text-1,#1C1410); }
 .closeBtn2 {
     padding: 8px 20px; background: var(--accent,#FF7A00); color: #fff;
-    border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+    border: none; border-radius: 0; font-weight: 700; cursor: pointer;
 }

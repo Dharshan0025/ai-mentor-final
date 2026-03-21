@@ -10,6 +10,7 @@ from config import settings
 import logging
 
 from db import db
+from mentor_strategy import build_mentor_brief
 
 logger = logging.getLogger(__name__)
 
@@ -69,17 +70,32 @@ def _classify_bloom_level(message: str, profile: dict, llm) -> dict:
 
 from db import db
 
-async def _get_rag_context(message: str, *, exam_focus: bool = False) -> str:
+async def _get_rag_context(message: str, *, exam_focus: bool = False, student_id: str | None = None) -> str:
     """Embed message and fetch top matching document chunks.
 
+    Also pulls episodic memory facts for the student to enrich the context.
     If exam_focus=True, prefer past exam papers (doc_type='exam_paper').
     """
+    context_parts = []
+
+    # ── Episodic Memory ──────────────────────────────────────────────────────
+    if student_id:
+        try:
+            from memory_worker import get_recent_memories
+            memories = await get_recent_memories(db, student_id, limit=6)
+            if memories:
+                mem_lines = "\n".join(
+                    f"- [{m['category']}] {m['fact']}" + (f" ({m['subject_code']})" if m.get("subject_code") else "")
+                    for m in memories
+                )
+                context_parts.append(f"\n--- STUDENT EPISODIC MEMORY (from past sessions) ---\n{mem_lines}\n")
+        except Exception as exc:
+            logger.debug("Episodic memory fetch skipped: %s", exc)
+
+    # ── Vector Search ────────────────────────────────────────────────────────
     try:
-        from langchain_aws import BedrockEmbeddings
-        embeddings = BedrockEmbeddings(
-            model_id="amazon.titan-embed-text-v2:0",
-            region_name=settings.aws_region,
-        )
+        from langchain_huggingface import HuggingFaceEmbeddings
+        embeddings = HuggingFaceEmbeddings(model_name="all-mpnet-base-v2")
         # Run sync embed in a thread
         import asyncio
         vector = await asyncio.to_thread(embeddings.embed_query, message)
@@ -91,17 +107,17 @@ async def _get_rag_context(message: str, *, exam_focus: bool = False) -> str:
             docs = await db.search_documents(vector, limit=3)
             label = "EXCERPTS FROM COURSE MATERAL"
         
-        if not docs:
-            return ""
+        if docs:
+            doc_context = f"\n--- {label} ---\n"
+            for i, d in enumerate(docs):
+                if d.get("similarity", 0) > 0.6:  # Threshold
+                    doc_context += f"[Source {i+1}: {d.get('filename')}] {d.get('content')}\n\n"
+            context_parts.append(doc_context + "------------------------------------\n")
 
-        context_str = f"\n--- {label} ---\n"
-        for i, d in enumerate(docs):
-            if d.get("similarity", 0) > 0.6:  # Threshold
-                context_str += f"[Source {i+1}: {d.get('filename')}] {d.get('content')}\n\n"
-        return context_str + "------------------------------------\n"
     except Exception as e:
         logger.error(f"RAG retrieval failed: {e}")
-        return ""
+
+    return "".join(context_parts)
 
 async def academic_node(state: dict) -> dict:
     """Academic agent — subject Q&A grounded in ERP profile with Bloom's gating and RAG."""
@@ -116,10 +132,11 @@ async def academic_node(state: dict) -> dict:
     message = state["message"]
     student_id = state.get("student_id")
 
-    learning_dna = None
+    learning_dna = state.get("learning_dna")
     if student_id:
         try:
-            learning_dna = await db.get_learning_dna(student_id)
+            if learning_dna is None:
+                learning_dna = await db.get_learning_dna(student_id)
         except Exception as e:
             logger.warning(f"Learning DNA load failed for {student_id}: {e}")
     
@@ -129,6 +146,9 @@ async def academic_node(state: dict) -> dict:
     req_bloom = classifier_result.get("bloom_level", 1)
     
     system_prompt = ACADEMIC_SYSTEM.format(student_profile=_format_profile(profile, learning_dna))
+    mentor_brief = build_mentor_brief(state)
+    if mentor_brief:
+        system_prompt += "\n\nMentor delivery brief:\n" + mentor_brief
     
     # 2. Add RAG Context
     rag_context = ""
@@ -146,7 +166,7 @@ async def academic_node(state: dict) -> dict:
                 "what comes in",
             ]
         )
-        rag_context = await _get_rag_context(message, exam_focus=exam_focus)
+        rag_context = await _get_rag_context(message, exam_focus=exam_focus, student_id=student_id)
         if rag_context:
             system_prompt += "\n" + rag_context
 

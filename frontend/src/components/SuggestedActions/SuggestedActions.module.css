@@ -1,0 +1,46 @@
+/* SuggestedActions — CTA prompt chips */
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0 0.25rem;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
+    background: var(--surface); box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+    color: var(--text-1);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.15s;
+    white-space: nowrap;
+}
+
+.chip:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--text-1);
+    transform: translate(-3px, -3px); box-shadow: 4px 4px 0px var(--accent, #CCFF00);
+}
+
+.chip:active {
+    transform: translateY(0);
+    background: rgba(59, 130, 246, 0.25);
+}
+
+.icon { font-size: 0.875rem; line-height: 1; }
+.label { line-height: 1.2; }

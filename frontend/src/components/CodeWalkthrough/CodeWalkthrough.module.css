@@ -1,9 +1,9 @@
 /* CodeWalkthrough — GitHub Light style code block */
 
 .wrapper {
-    border-radius: var(--r-md);
+    border-radius: 0;
     overflow: hidden;
-    border: 1px solid var(--border-light);
+    border: 2px solid var(--border, #333333);
     background: #F8F9FA;
     margin: 0.5rem 0;
 }
@@ -14,7 +14,7 @@
     gap: 0.5rem;
     padding: 0.5rem 0.85rem;
     background: #F1F3F5;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border, #333333);
 }
 
 .dots {
@@ -25,7 +25,7 @@
 .dot {
     width: 9px;
     height: 9px;
-    border-radius: 50%;
+    border-radius: 0;
     background: var(--border);
 }
 
@@ -42,8 +42,8 @@
     font-size: 0.65rem;
     color: var(--watch);
     background: var(--watch-light);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-    border-radius: var(--r-xs);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0;
     padding: 0.15rem 0.45rem;
     font-weight: 700;
 }
@@ -74,7 +74,7 @@
 
 .lineHighlighted {
     background: rgba(255, 122, 0, 0.06) !important;
-    border-left: 3px solid var(--accent);
+    border-left: 3px solid var(--border, #333333);
     padding-left: calc(0.85rem - 3px);
 }
 
@@ -108,7 +108,7 @@
     gap: 0.5rem;
     padding: 0.65rem 0.85rem;
     background: var(--accent-light);
-    border-top: 1px solid rgba(255, 122, 0, 0.15);
+    border-top: 1px solid var(--border, #333333);
     font-size: 0.8rem;
     color: var(--text-1);
     line-height: 1.5;

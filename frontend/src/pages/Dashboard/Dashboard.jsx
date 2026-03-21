@@ -265,10 +265,10 @@ export default function Dashboard() {
     const [learningBadge, setLearningBadge] = useState(null);
     const [benchmark, setBenchmark] = useState(null);
 
-    const load = useCallback(async () => {
+    const load = useCallback(async (forceRefresh = false) => {
         setLoading(true); setError(null);
         try {
-            setStudent(await getMyProfile());
+            setStudent(await getMyProfile({ forceRefresh }));
         } catch {
             setError('Could not load profile. Is the backend running?');
         } finally {
@@ -276,13 +276,12 @@ export default function Dashboard() {
         }
     }, []);
 
-    // Fetch AI morning brief independently (doesn't block profile load)
+    // Fetch AI morning brief independently — cached per login session
     useEffect(() => {
         setBriefLoading(true);
         getBriefing()
             .then(d => {
                 setAiBrief(d);
-                // Derive a simple learning style badge from AI brief metadata if present
                 const style = d?.learning_style || d?.profile_style;
                 if (style) setLearningBadge(style);
             })
@@ -293,7 +292,7 @@ export default function Dashboard() {
             .finally(() => setBriefLoading(false));
     }, []);
 
-    // Peer benchmarking — "Where you stand"
+    // Peer benchmarking — cached per login session
     useEffect(() => {
         getMyBenchmark()
             .then(setBenchmark)
@@ -337,7 +336,7 @@ export default function Dashboard() {
         <div className={styles.loadState}>
             <AlertTriangle size={26} color="#EF4444" />
             <p style={{ color: '#EF4444' }}>{error}</p>
-            <button className={styles.retryBtn} onClick={load}>Retry</button>
+            <button className={styles.retryBtn} onClick={() => load(true)}>Retry</button>
         </div>
     );
 
@@ -472,8 +471,19 @@ export default function Dashboard() {
     const briefingStyle = { risk: '#EF4444', warning: '#F59E0B', deadline: '#8B5CF6', opportunity: '#10B981', info: '#3B82F6' };
     const briefingIcon = { risk: '🚨', warning: '⚠️', deadline: '⏰', opportunity: '🚀', info: '📚' };
 
+    // Adaptive UI Tone logic
+    const currentSentiment = s.sentimentHistory?.[s.sentimentHistory.length - 1] ?? 0.5;
+    let toneGlow1 = '#1A1A1A';
+    let toneGlow2 = 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 70%)';
+    if (currentSentiment < 0.4) {
+        toneGlow1 = 'radial-gradient(circle, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0) 70%)';
+        toneGlow2 = 'radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0) 70%)';
+    } else if (currentSentiment > 0.7) {
+        toneGlow1 = 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0) 70%)';
+    }
+
     return (
-        <div className={styles.page}>
+        <div className={styles.page} style={{ '--tone-glow-1': toneGlow1, '--tone-glow-2': toneGlow2 }}>
 
             {/* ① Header ──────────────────────────────────────────── */}
             <div className={styles.header}>
@@ -502,8 +512,8 @@ export default function Dashboard() {
             </div>
 
             {/* ② Metric Strip ─────────────────────────────────────── */}
-            <div className={styles.actionGrid}>
-                <div className={styles.primaryActionCard}>
+            <div className={`${styles.actionGrid} ${actionHub.secondary.length > 0 ? '' : styles.actionGridNoSecondary}`}>
+                <div className={`${styles.primaryActionCard} ${actionHub.primaryAction.type === 'critical' ? styles.criticalFocus : actionHub.primaryAction.type === 'warning' ? styles.warningFocus : ''}`}>
                     <span className={styles.actionEyebrow}>{actionHub.primaryAction.eyebrow}</span>
                     <h2 className={styles.actionTitle}>{actionHub.primaryAction.title}</h2>
                     <p className={styles.actionText}>{actionHub.primaryAction.text}</p>
@@ -526,28 +536,30 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                <div className={styles.secondaryActionRail}>
-                    {actionHub.secondary.map((item, index) => (
-                        <div key={index} className={styles.secondaryActionCard}>
-                            <div className={styles.secondaryActionHead}>
-                                <span className={styles.secondaryActionIcon}>{item.icon}</span>
-                                <span className={styles.secondaryActionLabel}>{item.label}</span>
+                {actionHub.secondary.length > 0 && (
+                    <div className={styles.secondaryActionRail}>
+                        {actionHub.secondary.map((item, index) => (
+                            <div key={index} className={styles.secondaryActionCard}>
+                                <div className={styles.secondaryActionHead}>
+                                    <span className={styles.secondaryActionIcon}>{item.icon}</span>
+                                    <span className={styles.secondaryActionLabel}>{item.label}</span>
+                                </div>
+                                <div className={styles.secondaryActionTitle}>{item.title}</div>
+                                <p className={styles.secondaryActionText}>{item.text}</p>
+                                {item.cta && (
+                                    <button
+                                        type="button"
+                                        className={styles.secondaryActionButton}
+                                        onClick={() => navigate(item.cta.to, item.cta.state ? { state: item.cta.state } : undefined)}
+                                    >
+                                        {item.cta.label}
+                                        <ArrowRight size={12} />
+                                    </button>
+                                )}
                             </div>
-                            <div className={styles.secondaryActionTitle}>{item.title}</div>
-                            <p className={styles.secondaryActionText}>{item.text}</p>
-                            {item.cta && (
-                                <button
-                                    type="button"
-                                    className={styles.secondaryActionButton}
-                                    onClick={() => navigate(item.cta.to, item.cta.state ? { state: item.cta.state } : undefined)}
-                                >
-                                    {item.cta.label}
-                                    <ArrowRight size={12} />
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
 
                 <div className={styles.momentumCard}>
                     <SectionHeader title="Momentum" icon={<TrendingUp size={15} />} badge="Keep this going" />
@@ -615,7 +627,7 @@ export default function Dashboard() {
                             <span className={styles.benchmarkLabel}>CGPA</span>
                             <span className={styles.benchmarkValue} style={{ color: '#FF7A00' }}>{benchmark.cgpa}</span>
                             <span className={styles.benchmarkText}>
-                                Top {Math.round(100 - benchmark.cgpa_percentile)}% · Dept avg {benchmark.dept_avg_cgpa}
+                                {100 - benchmark.cgpa_percentile <= 10 ? 'Elite 10% bracket! Keep it up. ' : 100 - benchmark.cgpa_percentile <= 25 ? "Top 25%! You're ahead of the curve. " : `Top ${Math.round(100 - benchmark.cgpa_percentile)}% · `}Dept avg {benchmark.dept_avg_cgpa}
                                 {benchmark.cgpa_vs_avg > 0 && <span style={{ color: '#10B981' }}> (+{benchmark.cgpa_vs_avg})</span>}
                                 {benchmark.cgpa_vs_avg < 0 && <span style={{ color: '#EF4444' }}> ({benchmark.cgpa_vs_avg})</span>}
                             </span>

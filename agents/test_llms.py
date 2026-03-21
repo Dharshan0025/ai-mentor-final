@@ -1,5 +1,5 @@
 """
-Quick LLM Health Check — tests Groq + Gemini + Bedrock connectivity
+Quick LLM Health Check — tests Groq + NVIDIA NIM connectivity
 Run: python test_llms.py
 """
 import asyncio
@@ -45,42 +45,27 @@ async def test_groq_fast():
         return f"❌ Groq 8B error: {e}"
 
 
-
-
-
-async def test_bedrock():
+async def test_nvidia():
     try:
-        bearer = os.getenv("AWS_BEARER_TOKEN_BEDROCK", "")
-        key_id = os.getenv("AWS_ACCESS_KEY_ID", "")
-        secret  = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-        if not bearer and (not key_id or not secret):
-            return "⚠️  Bedrock: No credentials set — skipped"
-        import boto3, json
-        region = os.getenv("AWS_REGION", "us-east-1")
-        
-        kwargs = {"region_name": region}
-        if key_id and secret:
-            kwargs["aws_access_key_id"] = key_id
-            kwargs["aws_secret_access_key"] = secret
-            
-        client = boto3.client("bedrock-runtime", **kwargs)
-        
-        response = client.converse(
-            modelId=os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5-20250929-v1:0"),
-            messages=[{"role": "user", "content": [{"text": "Reply with exactly: BEDROCK_OK"}]}],
+        from openai import AsyncOpenAI
+        api_key = os.getenv("NVIDIA_API_KEY", "")
+        model = os.getenv("NVIDIA_MODEL", "meta/llama-3.3-70b-instruct")
+        if not api_key:
+            return "⚠️  NVIDIA NIM: NVIDIA_API_KEY not set — skipped"
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
         )
-        
-        # safely extract text depending on the model output schema
-        content_blocks = response.get("output", {}).get("message", {}).get("content", [])
-        reply = "NO_TEXT"
-        for block in content_blocks:
-            if "text" in block:
-                reply = block["text"].strip()
-                break
-
-        return f"✅ Bedrock Model       → '{reply}'"
+        resp = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": "Reply with exactly: NVIDIA_OK"}],
+            max_tokens=10,
+            temperature=0,
+        )
+        reply = resp.choices[0].message.content.strip()
+        return f"✅ NVIDIA NIM {model} → '{reply}'"
     except Exception as e:
-        return f"❌ Bedrock error: {e}"
+        return f"❌ NVIDIA NIM error: {e}"
 
 
 async def main():
@@ -89,7 +74,7 @@ async def main():
     results = await asyncio.gather(
         test_groq_large(),
         test_groq_fast(),
-        test_bedrock(),
+        test_nvidia(),
         return_exceptions=True,
     )
     for r in results:

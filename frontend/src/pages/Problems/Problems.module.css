@@ -22,7 +22,7 @@
 .headerIcon {
     width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255,122,0,0.1); border-radius: 12px;
+    background: rgba(255,122,0,0.1); border-radius: 0;
     color: var(--accent, #FF7A00);
 }
 .title    { font-size: 1.5rem; font-weight: 800; margin: 0; }
@@ -31,7 +31,7 @@
     margin-left: auto;
     display: flex; align-items: center; gap: 6px;
     padding: 8px 16px; background: var(--accent, #FF7A00); color: #fff;
-    border: none; border-radius: 8px; font-weight: 700; font-size: 0.84rem;
+    border: none; border-radius: 0; font-weight: 700; font-size: 0.84rem;
     cursor: pointer; transition: background 0.15s;
 }
 .genBtn:hover { background: #CC5500; }
@@ -43,7 +43,7 @@
 .statCard {
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 12px; padding: 14px;
+    border-radius: 0; padding: 14px;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
 }
 .statVal   { font-size: 1.5rem; font-weight: 800; }
@@ -53,7 +53,7 @@
 .configPanel {
     background: var(--surface, #FFFDF7);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 14px; padding: 20px;
+    border-radius: 0; padding: 20px;
     display: flex; flex-direction: column; gap: 16px;
 }
 .configTitle { font-size: 0.95rem; font-weight: 700; margin: 0; }
@@ -62,14 +62,14 @@
 .select, .input {
     width: 100%; padding: 8px 10px;
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 7px; background: var(--bg, #F4F1EC);
+    border-radius: 0; background: var(--bg, #F4F1EC);
     font-size: 0.85rem; color: var(--text-1, #1C1410);
     outline: none;
 }
 .select:focus, .input:focus { border-color: var(--accent, #FF7A00); }
 .chipRow { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
-    padding: 4px 12px; border-radius: 20px;
+    padding: 4px 12px; border-radius: 0;
     background: var(--bg, #F4F1EC); border: 1.5px solid var(--border, #E8E0D5);
     font-size: 0.77rem; font-weight: 600; cursor: pointer; text-transform: capitalize;
 }
@@ -79,7 +79,7 @@
 .modeCards { display: flex; gap: 8px; flex-wrap: wrap; }
 .modeCard {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 8px 12px; border-radius: 10px; cursor: pointer;
+    padding: 8px 12px; border-radius: 0; cursor: pointer;
     background: var(--bg, #F4F1EC); border: 1.5px solid var(--border, #E8E0D5);
     min-width: 80px; transition: all 0.12s;
 }
@@ -92,7 +92,7 @@
 .buildBtn {
     display: flex; align-items: center; justify-content: center; gap: 7px;
     padding: 10px 24px; background: var(--accent, #FF7A00); color: #fff;
-    border: none; border-radius: 9px; font-weight: 700; font-size: 0.9rem;
+    border: none; border-radius: 0; font-weight: 700; font-size: 0.9rem;
     cursor: pointer; transition: background 0.15s; align-self: flex-start;
 }
 .buildBtn:hover:not(:disabled) { background: #CC5500; }
@@ -110,10 +110,10 @@
 .card {
     background: var(--surface, #FFFDF7);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 12px; overflow: hidden;
+    border-radius: 0; overflow: hidden;
     transition: box-shadow 0.15s;
 }
-.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+.card:hover { box-shadow: 4px 4px 0px var(--accent, #CCFF00); }
 .cardNew { border-left: 3px solid var(--accent, #FF7A00); }
 
 .cardHeader {
@@ -123,7 +123,7 @@
 }
 .qNum  { font-size: 0.75rem; font-weight: 800; color: var(--text-3, #8B7355); min-width: 24px; }
 .typeBadge, .diffBadge {
-    font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 5px;
+    font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 0;
     text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;
 }
 .diffBadge { background: var(--bg,#F4F1EC); color: var(--text-2,#5C4A35); }
@@ -142,14 +142,14 @@
 .options { display: flex; flex-direction: column; gap: 6px; }
 .option {
     display: flex; align-items: center; gap: 10px;
-    padding: 9px 12px; border-radius: 8px;
+    padding: 9px 12px; border-radius: 0;
     border: 1.5px solid var(--border,#E8E0D5);
     background: var(--bg,#F4F1EC);
     font-size: 0.83rem; cursor: pointer; text-align: left;
     transition: all 0.12s;
 }
 .option:hover:not(:disabled) { border-color: var(--accent,#FF7A00); }
-.optSelected { border-color: #2563EB; background: rgba(37,99,235,0.06); }
+.optSelected { border-color: var(--accent, #CCFF00); background: rgba(37,99,235,0.06); }
 .optCorrect  { border-color: #10B981 !important; background: rgba(16,185,129,0.08) !important; }
 .optWrong    { border-color: #EF4444 !important; background: rgba(239,68,68,0.06) !important; }
 .optLetter   { font-weight: 800; width: 18px; flex-shrink: 0; }
@@ -158,26 +158,26 @@
 .revealBtn {
     padding: 7px 14px; background: var(--bg,#F4F1EC);
     border: 1.5px solid var(--border,#E8E0D5);
-    border-radius: 7px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    border-radius: 0; font-size: 0.82rem; font-weight: 600; cursor: pointer;
 }
 .revealBtn:hover { border-color: var(--accent,#FF7A00); }
 .answerText {
     padding: 10px 12px; background: rgba(16,185,129,0.08);
-    border: 1px solid #10B981; border-radius: 8px;
+    border: 2px solid var(--border, #333333); border-radius: 0;
     font-size: 0.83rem; color: var(--text-1,#1C1410);
 }
 
 .hint {
     font-size: 0.78rem; color: var(--text-3,#8B7355);
     padding: 6px 10px; background: rgba(255,122,0,0.06);
-    border-radius: 6px; margin: 0;
+    border-radius: 0; margin: 0;
 }
 
 .explanation {
     padding: 10px 12px;
     background: rgba(99,102,241,0.06);
-    border: 1px solid rgba(99,102,241,0.2);
-    border-radius: 8px; font-size: 0.82rem; color: var(--text-2,#5C4A35);
+    border: 2px solid var(--border, #333333);
+    border-radius: 0; font-size: 0.82rem; color: var(--text-2,#5C4A35);
 }
 
 .deleteBtn {

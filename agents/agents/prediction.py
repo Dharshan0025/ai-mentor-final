@@ -1,9 +1,9 @@
 """
 AI-Mentor — Agentic Prediction Engine (v2)
-2-phase Amazon Bedrock (ChatGPT 120b) analysis:
+2-phase NVIDIA NIM (llama-3.3-70b-instruct) analysis:
   Phase 1 → Structured JSON: per-subject diagnosis, arrear risk, critical moves
   Phase 2 → Markdown narrative: conversational deep-dive like a personal tutor
-Fallback: Groq (llama-3.3-70b-versatile) if Bedrock fails.
+Fallback: Groq (llama-3.3-70b-versatile) if NVIDIA NIM is unavailable.
 """
 import json
 import logging
@@ -82,23 +82,26 @@ Do NOT use clichés ("hard work pays off"). Be specific. Reference real grades, 
 
 
 def _get_llm(temperature: float = 0.2, max_tokens: int = 1500):
-    """Return Bedrock ChatGPT first, fall back to Groq."""
-    try:
-        from langchain_aws import ChatBedrock
-        return ChatBedrock(
-            model_id=settings.bedrock_model_id,
-            region_name=settings.aws_region,
-            model_kwargs={"temperature": temperature, "max_tokens": max_tokens},
-        ), "bedrock"
-    except Exception as e:
-        logger.warning(f"Bedrock init failed ({e}), using Groq")
-        from langchain_groq import ChatGroq
-        return ChatGroq(
-            api_key=settings.groq_api_key,
-            model=settings.groq_model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        ), "groq"
+    """Return NVIDIA NIM LLM first, fall back to Groq."""
+    if settings.nvidia_api_key:
+        try:
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(
+                api_key=settings.nvidia_api_key,
+                base_url=settings.nvidia_base_url,
+                model=settings.nvidia_model,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            ), "nvidia"
+        except Exception as e:
+            logger.warning(f"NVIDIA NIM init failed ({e}), using Groq")
+    from langchain_groq import ChatGroq
+    return ChatGroq(
+        api_key=settings.groq_api_key,
+        model=settings.groq_model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    ), "groq"
 
 
 def _build_context(profile: dict, learning_dna: dict | None = None) -> str:
@@ -146,9 +149,9 @@ def _build_context(profile: dict, learning_dna: dict | None = None) -> str:
     return "\n".join(lines)
 
 
-async def run_bedrock_analysis(profile: dict, learning_dna: dict | None = None) -> dict:
+async def run_llm_analysis(profile: dict, learning_dna: dict | None = None) -> dict:
     """
-    2-phase async analysis:
+    2-phase async analysis using NVIDIA NIM (falls back to Groq):
     Phase 1 → structured JSON (temp 0.1)
     Phase 2 → markdown narrative (temp 0.35)
     Returns merged dict with all fields.
@@ -202,13 +205,13 @@ async def run_bedrock_analysis(profile: dict, learning_dna: dict | None = None) 
     }
 
 
-async def run_bedrock_sim_explanation(
+async def run_sim_explanation(
     profile: dict,
     improvement: dict,
     baseline_cgpa: float,
     simulated_cgpa: float,
 ) -> str:
-    """Generate a 3-sentence Bedrock explanation for why the simulation changed the CGPA."""
+    """Generate a 3-sentence explanation (NVIDIA NIM / Groq) for why the simulation changed the CGPA."""
     llm, _ = _get_llm(temperature=0.3, max_tokens=300)
     delta = round(simulated_cgpa - baseline_cgpa, 3)
     prompt = (
@@ -333,6 +336,10 @@ def compute_predicted_cgpa(profile: dict, improvement: dict = None) -> dict:
         model.fit(X, y)
         trend_prediction = model.predict([[len(cgpa_history) + 1]])[0]
         r_sq = model.score(X, y)
+    elif len(cgpa_history) == 1:
+        # For students with only 1 semester, use current CGPA as baseline
+        trend_prediction = _to_float(profile.get("currentCGPA"), cgpa_history[0])
+        r_sq = 0.3  # lower confidence for new students
 
     grades = [_to_float(s.get("grade"), 7.0) for s in subjects]
     attendances = [_to_float(s.get("live_attendance") or s.get("attendance"), 80.0) for s in subjects]
@@ -383,11 +390,16 @@ def build_prediction_fallback(profile: dict) -> dict:
     }
 
 
+# ── Backward-compatible aliases ───────────────────────────────────────────────
+run_bedrock_analysis = run_llm_analysis
+run_bedrock_sim_explanation = run_sim_explanation
+
+
 # ── LangGraph-compatible node ─────────────────────────────────────────────────
 async def prediction_node(state: dict) -> dict:
     """
     LangGraph node wrapper for the prediction engine.
-    Calls run_bedrock_analysis; falls back to build_prediction_fallback on error.
+    Calls run_llm_analysis (NVIDIA NIM / Groq); falls back to build_prediction_fallback on error.
     Writes prediction_output + model_used into AgentState.
     """
     profile = state.get("student_profile", {})
@@ -395,15 +407,16 @@ async def prediction_node(state: dict) -> dict:
     try:
         from db import db
         student_id = state.get("student_id")
-        learning_dna = None
+        learning_dna = state.get("learning_dna")
         if student_id:
             try:
-                learning_dna = await db.get_learning_dna(student_id)
+                if learning_dna is None:
+                    learning_dna = await db.get_learning_dna(student_id)
             except Exception as dna_err:
                 logger.warning(f"Learning DNA load skipped: {dna_err}")
 
-        result = await run_bedrock_analysis(profile, learning_dna)
-        provider = (result.get("providers") or {}).get("phase1", "bedrock")
+        result = await run_llm_analysis(profile, learning_dna)
+        provider = (result.get("providers") or {}).get("phase1", "nvidia")
     except Exception as e:
         logger.error(f"prediction_node LLM failed ({e}), using deterministic fallback")
         result = build_prediction_fallback(profile)
@@ -430,4 +443,3 @@ async def prediction_node(state: dict) -> dict:
             {"label": f"Trajectory: {result.get('trajectory_signal', 'stable')}", "source": "Prediction Engine"},
         ],
     }
-

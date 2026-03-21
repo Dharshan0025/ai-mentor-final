@@ -60,4 +60,45 @@ router.post(
     }
 );
 
+/**
+ * GET /api/chat/sessions
+ * Protected: requires JWT
+ */
+router.get(
+    '/sessions',
+    requireAuth,
+    async (req, res, next) => {
+        try {
+            const studentId = req.user.studentId;
+            const response = await axios.get(`${AGENT_SERVICE}/student/${studentId}/chat/sessions`, {
+                timeout: 10_000
+            });
+            res.json(response.data);
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
+/**
+ * GET /api/chat/:sessionId/history
+ * Protected: requires JWT
+ */
+router.get(
+    '/:sessionId/history',
+    requireAuth,
+    async (req, res, next) => {
+        try {
+            const { sessionId } = req.params;
+            const studentId = req.user.studentId;
+            const response = await axios.get(`${AGENT_SERVICE}/student/${studentId}/chat/${sessionId}/history`, {
+                timeout: 10_000
+            });
+            res.json(response.data);
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
 export default router;

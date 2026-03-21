@@ -13,14 +13,14 @@ import { getTutorProgress, getWeakAreas, getDueTopics } from '../../services/api
 import styles from './Progress.module.css';
 
 // ── API helpers ─────────────────────────────────────────────────────────────
-async function fetchProgress() {
-    return getTutorProgress();
+async function fetchProgress(forceRefresh) {
+    return getTutorProgress(null, { forceRefresh });
 }
-async function fetchWeakAreasData() {
-    return getWeakAreas(null, 8);
+async function fetchWeakAreasData(forceRefresh) {
+    return getWeakAreas(null, 8, { forceRefresh });
 }
-async function fetchDueTopicsData() {
-    return getDueTopics(72);
+async function fetchDueTopicsData(forceRefresh) {
+    return getDueTopics(72, { forceRefresh });
 }
 
 // ── Stat card ───────────────────────────────────────────────────────────────
@@ -148,9 +148,9 @@ export default function Progress() {
         setError(null);
         try {
             const [prog, weak, due] = await Promise.all([
-                fetchProgress(),
-                fetchWeakAreasData(),
-                fetchDueTopicsData(),
+                fetchProgress(showRefresh),
+                fetchWeakAreasData(showRefresh),
+                fetchDueTopicsData(showRefresh),
             ]);
             setProgress(prog);
             setWeakAreas(weak.weak_areas || []);

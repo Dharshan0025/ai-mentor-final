@@ -18,8 +18,8 @@
 .headerIcon {
     width: 46px;
     height: 46px;
-    background: linear-gradient(135deg, #FF7A00, #FF9A33);
-    border-radius: 12px;
+    background: var(--surface-2, #1E1E1E);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -127,7 +127,7 @@
 .input {
     padding: 8px 12px;
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 8px;
+    border-radius: 0;
     background: var(--surface, #FFFDF7);
     color: var(--text-1, #1C1410);
     font-size: 0.85rem;
@@ -144,7 +144,7 @@
     width: 100%;
     padding: 12px;
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 10px;
+    border-radius: 0;
     background: var(--surface, #FFFDF7);
     color: var(--text-1, #1C1410);
     font-size: 0.85rem;
@@ -182,7 +182,7 @@
     background: var(--accent, #FF7A00);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
@@ -215,7 +215,7 @@
     width: 34px;
     height: 34px;
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 7px;
+    border-radius: 0;
     background: var(--surface, #FFFDF7);
     color: var(--text-2, #5C4A35);
     cursor: pointer;
@@ -241,7 +241,7 @@
     padding: 7px 14px;
     background: var(--surface, #FFFDF7);
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 7px;
+    border-radius: 0;
     color: var(--text-2, #5C4A35);
     font-size: 0.82rem;
     cursor: pointer;
@@ -272,7 +272,7 @@
     flex: 1;
     padding: 10px 14px;
     border: 1.5px solid var(--border, #E8E0D5);
-    border-radius: 8px;
+    border-radius: 0;
     background: var(--surface, #FFFDF7);
     color: var(--text-1, #1C1410);
     font-size: 0.88rem;
@@ -292,7 +292,7 @@
     background: var(--accent, #FF7A00);
     color: #fff;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
 }
 
@@ -306,7 +306,7 @@
     padding: 12px 14px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 8px;
+    border-radius: 0;
 }
 
 .chunkMeta {
@@ -346,7 +346,7 @@
     padding: 12px 16px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 10px;
+    border-radius: 0;
     transition: border-color 0.15s;
 }
 
@@ -386,7 +386,7 @@
     background: rgba(255, 122, 0, 0.1);
     color: var(--accent, #FF7A00);
     padding: 1px 7px;
-    border-radius: 4px;
+    border-radius: 0;
     font-weight: 600;
     font-size: 0.72rem;
 }
@@ -394,7 +394,7 @@
 /* Badges */
 .badge {
     padding: 3px 9px;
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 0.73rem;
     font-weight: 600;
 }
@@ -434,8 +434,8 @@
     flex-wrap: wrap;
     padding: 12px 16px;
     background: rgba(255, 122, 0, 0.06);
-    border-radius: 10px;
-    border: 1px solid rgba(255, 122, 0, 0.2);
+    border-radius: 0;
+    border: 2px solid var(--border, #333333);
 }
 
 .pyqStat {
@@ -455,7 +455,7 @@
 .topicTable {
     display: flex;
     flex-direction: column;
-    border-radius: 10px;
+    border-radius: 0;
     overflow: hidden;
     border: 1px solid var(--border, #E8E0D5);
 }
@@ -498,7 +498,7 @@
 
 .bloomBadge {
     padding: 2px 8px;
-    border-radius: 5px;
+    border-radius: 0;
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
@@ -520,7 +520,7 @@
 .weightFill {
     height: 6px;
     background: var(--accent, #FF7A00);
-    border-radius: 3px;
+    border-radius: 0;
     min-width: 4px;
     max-width: 80px;
 }
@@ -552,7 +552,7 @@
     padding: 8px 12px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.84rem;
     color: var(--text-2, #5C4A35);
 }
@@ -587,7 +587,7 @@
     background: #E0F2FE;
     color: #0369A1;
     padding: 2px 8px;
-    border-radius: 5px;
+    border-radius: 0;
     font-size: 0.72rem;
     font-weight: 600;
 }
@@ -595,7 +595,7 @@
 .mermaidWrap {
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 20px;
     overflow-x: auto;
     min-height: 200px;
@@ -632,7 +632,7 @@
     padding: 5px 12px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 20px;
+    border-radius: 0;
     font-size: 0.82rem;
     color: var(--text-2, #5C4A35);
 }
@@ -642,7 +642,7 @@
     height: 20px;
     background: var(--accent, #FF7A00);
     color: #fff;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -678,7 +678,7 @@
     padding: 12px 16px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .noteInfo {
@@ -705,7 +705,7 @@
     background: rgba(255, 122, 0, 0.1);
     color: var(--accent, #FF7A00);
     padding: 1px 7px;
-    border-radius: 4px;
+    border-radius: 0;
     font-weight: 600;
     font-size: 0.72rem;
 }
@@ -739,7 +739,7 @@
     padding: 24px;
     background: var(--surface, #FFFDF7);
     border: 1px solid var(--border, #E8E0D5);
-    border-radius: 12px;
+    border-radius: 0;
     line-height: 1.7;
     color: var(--text-1, #1C1410);
     font-size: 0.9rem;
@@ -753,9 +753,9 @@
 }
 
 .noteMarkdown code {
-    background: #F3F4F6;
+    background-color: var(--surface, #141414);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 0.85em;
 }
 
@@ -763,7 +763,7 @@
     background: #1F2937;
     color: #F9FAFB;
     padding: 14px;
-    border-radius: 8px;
+    border-radius: 0;
     overflow-x: auto;
 }
 
