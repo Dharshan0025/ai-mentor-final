@@ -769,3 +769,11 @@ export async function getSupportedLanguages() {
     const { data } = await api.get('/tutor/supported-languages');
     return data;
 }
+
+/** Multimodal Vision Analysis (Upload Scan) */
+export async function tutorVisionAnalyze(body) {
+    const stored = getStoredStudent();
+    const student_id = stored?.id || stored?.studentId || stored?.college_id || 'me';
+    const { data } = await api.post(`/student/${student_id}/tutor/vision`, body);
+    return data;
+}

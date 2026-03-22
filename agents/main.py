@@ -1880,7 +1880,7 @@ async def get_lesson_plan(student_id: str, subject_code: str = "", topic: str = 
     try:
         mem = MemoryAgent()
         sm2_data = await mem.get_weak_areas(
-            student_id=student_id,
+            db_id,
             subject_code=subject_code,
             top_n=8,
         )

@@ -10,7 +10,7 @@ import {
     RotateCcw, Loader2, Maximize2, Minimize2, AlertTriangle,
     MessageCircle, Play, BookOpen, CheckCircle2, Circle, Clock,
     CalendarClock, FlaskConical, Download, GraduationCap, Sparkles,
-    BarChart3, Code2, Users, History, BookMarked, Globe,
+    BarChart3, Code2, Users, History, BookMarked, Globe, Image as ImageIcon,
 } from 'lucide-react';
 import mermaid from 'mermaid';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
@@ -19,6 +19,7 @@ import {
     getTutorOptions, startTutorLesson, askTutorQuestion, clearTutorSession,
     getLessonPlan, getDueTopics, recordCheckpointMemory, doubtResolve, awardXp,
     saveDiagram, sendAttentionHeartbeat, reportSilenceAlert, getStoredStudent,
+    tutorVisionAnalyze,
 } from '../../services/api';
 import CheckpointQuiz from '../../components/CheckpointQuiz/CheckpointQuiz';
 import EquationBlock from '../../components/EquationBlock/EquationBlock';
@@ -32,7 +33,7 @@ import StudyModeSelector from '../../components/StudyModeSelector/StudyModeSelec
 import { PeerLearning } from '../../components/PeerLearning/PeerLearning';
 
 
-// ── Mermaid init — light neutral theme ─────────────────────────────────────
+// —— Mermaid init — light neutral theme ——————————————————————————————
 mermaid.initialize({
     startOnLoad: false,
     theme: 'neutral',
@@ -82,7 +83,7 @@ const TEACHING_STYLES = [
     { id: 'exam-oriented + concise', label: 'Exam-ready', icon: '📝', desc: 'Key points & tips' },
 ];
 
-// ── Voice hook ─────────────────────────────────────────────────────────────
+// —— Voice hook ——————————————————————————————————————————————————————
 function useSpeech() {
     const [voiceEnabled, setVoiceEnabled] = useState(true);
     const [speaking, setSpeaking] = useState(false);
@@ -141,7 +142,7 @@ function useSpeech() {
     return { voiceEnabled, speaking, listening, transcript, setTranscript, speak, stop, toggleVoice, startListening, stopListening };
 }
 
-// ── Whiteboard Canvas ──────────────────────────────────────────────────────
+// —— Whiteboard Canvas ———————————————————————————————————————————————
 function Canvas({ code, title, stepNum, totalSteps }) {
     const [svg, setSvg] = useState('');
     const [err, setErr] = useState(null);
@@ -242,9 +243,9 @@ function Canvas({ code, title, stepNum, totalSteps }) {
     );
 }
 
-// ── (V6: Legacy inline TeacherAvatar removed — now imported from /components/TeacherAvatar) ──
+// —— (V6: Legacy inline TeacherAvatar removed — now imported from /components/TeacherAvatar) ——
 
-// ── Step Rail ──────────────────────────────────────────────────────────────
+// —— Step Rail ——————————————————————————————————————————————————————————————
 function StepRail({ steps, currentStep, teaching, planSteps = [] }) {
     const allSteps = planSteps.length > 0 ? planSteps : steps;
     return (
@@ -287,7 +288,7 @@ function StepRail({ steps, currentStep, teaching, planSteps = [] }) {
     );
 }
 
-// ── Lesson Plan Preview ────────────────────────────────────────────────────
+// —— Lesson Plan Preview ————————————————————————————————————————————————————
 function LessonPlanPreview({ plan, onStart, loading }) {
     if (!plan) return null;
     const { steps = [], topic, estimated_total_minutes, checkpoints, bloom_level } = plan;
@@ -313,7 +314,7 @@ function LessonPlanPreview({ plan, onStart, loading }) {
                             <span className={styles.planStepTitle}>{s.title}</span>
                             <span className={styles.planStepMeta}>
                                 ~{s.estimated_minutes}min · Bloom {s.bloom_target}
-                                {s.checkpoint_after && <span className={styles.planCpTag}>✓ Quiz</span>}
+                                {s.checkpoint_after && <span className={styles.planCpTag}>✔ Quiz</span>}
                             </span>
                         </div>
                     </div>
@@ -326,7 +327,7 @@ function LessonPlanPreview({ plan, onStart, loading }) {
     );
 }
 
-// ── Due Topics Banner ──────────────────────────────────────────────────────
+// —— Due Topics Banner ——————————————————————————————————————————————————————
 function DueTopicsBanner({ dueTopics, onSelectTopic }) {
     if (!dueTopics || dueTopics.length === 0) return null;
     return (
@@ -348,7 +349,7 @@ function DueTopicsBanner({ dueTopics, onSelectTopic }) {
     );
 }
 
-// ── Narration line with inline LaTeX ──────────────────────────────────────
+// —— Narration line with inline LaTeX ——————————————————————————————————————
 function NarrationLine({ text }) {
     const parts = text.split(/(\$\$[^$]+\$\$)/g);
     return (
@@ -364,7 +365,7 @@ function NarrationLine({ text }) {
     );
 }
 
-// ── Mini Canvas for Q&A inline diagrams ───────────────────────────────────
+// —— Mini Canvas for Q&A inline diagrams ———————————————————————————————————
 function MiniCanvas({ code }) {
     const [svg, setSvg] = useState('');
     const [err, setErr] = useState(null);
@@ -392,7 +393,7 @@ function MiniCanvas({ code }) {
     );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
+// —— Main Page ——————————————————————————————————————————————————————————————
 export default function Tutor() {
     const [options, setOptions] = useState({ subjects: [], topics_by_subject: {} });
     const [loadingOptions, setLoadingOptions] = useState(true);
@@ -411,12 +412,16 @@ export default function Tutor() {
     // Lesson streaming
     const [teaching, setTeaching] = useState(false);
     const [steps, setSteps] = useState([]);
-    const [currentStep, setCurrentStep] = useState(0);
+    const [currentStep, setCurrentStep] = useState(1);
     const [currentDiagram, setCurrentDiagram] = useState('');
     const [diagramTitle, setDiagramTitle] = useState('');
     const [currentSubtitle, setCurrentSubtitle] = useState('');
     const [lessonDone, setLessonDone] = useState(false);
     const [lessonErr, setLessonErr] = useState(null);
+    // Tracks whether at least one narration has been delivered this lesson
+    // Used to prevent the checkpoint quiz from popping up before teaching starts
+    const narrationStartedRef = useRef(false);
+    const pendingCheckpointRef = useRef(null); // Buffer checkpoint until narration begins
     const narrationEndRef = useRef(null);
 
     // Checkpoint
@@ -451,7 +456,7 @@ export default function Tutor() {
 
     // V4 Confusion detection — tracks wrong answers per topic this session
     const confusionMapRef = useRef({});   // { [topicKey]: count }
-    const [confusedTopics, setConfusedTopics] = useState([]); // topics with ≥2 wrong
+    const [confusedTopics, setConfusedTopics] = useState([]); // topics with â‰¥2 wrong
 
     // V5 Doubt resolution — DoubtResolverAgent response
     const [doubtResolution, setDoubtResolution] = useState(null); // { mode, explanation, mini_question, key_insight, diagram? }
@@ -469,7 +474,7 @@ export default function Tutor() {
     // V6 XP Toast — shown after XP is awarded
     const [xpToast, setXpToast] = useState(null);
 
-    // ── Phase 8: New state ────────────────────────────────────────────────────
+    // —— Phase 8: New state ————————————————————————————————————————————————————
     const [showDiagramHistory, setShowDiagramHistory] = useState(false);
     const [showPeerRoom, setShowPeerRoom]             = useState(false);
     const [showStudyMode, setShowStudyMode]           = useState(false);
@@ -478,7 +483,10 @@ export default function Tutor() {
     const [silenceAlert, setSilenceAlert]             = useState(null);  // { severity, suggestion }
     const silenceTRef = useRef(null);
     const lastInteractRef = useRef(Date.now());
-
+    
+    // V10 Vision Tutor Mode
+    const [visionLoading, setVisionLoading] = useState(false);
+    const visionInputRef = useRef(null);
 
     const speech = useSpeech();
 
@@ -509,7 +517,7 @@ export default function Tutor() {
             .catch(() => { });
     }, []);
 
-    // ── V8: Attention heartbeat (visibility change) ───────────────────────────
+    // —— V8: Attention heartbeat (visibility change) ———————————————————————————
     useEffect(() => {
         let hbInterval = null;
         const handleVisibility = () => sendAttentionHeartbeat(!document.hidden, sessionId || '');
@@ -526,7 +534,7 @@ export default function Tutor() {
         };
     }, [sessionId]);
 
-    // ── V8: Silence detection (no interaction > 45s during lesson) ────────────
+    // —— V8: Silence detection (no interaction > 45s during lesson) ————————————
     useEffect(() => {
         if (!teaching || !lessonStarted) {
             clearTimeout(silenceTRef.current);
@@ -555,7 +563,7 @@ export default function Tutor() {
         if (silenceAlert) setSilenceAlert(null);
     }, [silenceAlert]);
 
-    // ── V2: Auto-save diagram to visual memory ────────────────────────────────
+    // —— V2: Auto-save diagram to visual memory ————————————————————————————————
     useEffect(() => {
         if (!currentDiagram || !sessionId) return;
         saveDiagram({
@@ -570,7 +578,7 @@ export default function Tutor() {
 
 
 
-    // Talk mode → question auto-send
+    // Talk mode â†’ question auto-send
     useEffect(() => {
         if (!talkMode && speech.transcript) setQuestionInput(speech.transcript);
     }, [talkMode, speech.transcript]);
@@ -622,11 +630,13 @@ export default function Tutor() {
     };
 
     const resetLessonData = () => {
-        setTeaching(false); setSteps([]); setCurrentStep(0);
+        setTeaching(false); setSteps([]); setCurrentStep(1);
         setCurrentDiagram(''); setDiagramTitle(''); setCurrentSubtitle('');
         setLessonDone(false); setLessonErr(null); setQaThread([]);
         setQuestionInput(''); setAskErr(null); setPaused(false); setCheckpoint(null);
         setEquations([]); setCodeBlocks([]);
+        narrationStartedRef.current = false;
+        pendingCheckpointRef.current = null;
     };
 
     const startNewConversation = useCallback(async () => {
@@ -658,11 +668,14 @@ export default function Tutor() {
     const startLesson = useCallback(async () => {
         if (!selTopic || !selSubject) return;
         setLessonStarted(true);
-        setTeaching(true); setSteps([]); setCurrentStep(0);
+        setTeaching(true); setSteps([]); setCurrentStep(1);
         setCurrentDiagram(''); setDiagramTitle(''); setCurrentSubtitle('');
         setLessonDone(false); setLessonErr(null);
         setPaused(false); setCheckpoint(null);
         setEquations([]); setCodeBlocks([]);
+        // Reset narration guard — quiz cannot fire until first narration is spoken
+        narrationStartedRef.current = false;
+        pendingCheckpointRef.current = null;
         speech.stop();
 
         try {
@@ -691,12 +704,23 @@ export default function Tutor() {
                                 if (typeof sessionStorage !== 'undefined')
                                     sessionStorage.setItem('tutor_session_id', data.session_id);
                             } else if (evt === 'step') {
+                                // Only advance step — never jump backwards or skip
                                 setSteps(p => [...p, { step: data.step, title: data.title }]);
-                                setCurrentStep(data.step);
+                                setCurrentStep(prev => Math.max(prev, data.step ?? (prev + 1)));
                                 setDiagramTitle(data.title);
                             } else if (evt === 'narration') {
                                 setCurrentSubtitle(data.text);
                                 speech.speak(data.text);
+                                // Mark that at least one narration has been delivered
+                                if (!narrationStartedRef.current) {
+                                    narrationStartedRef.current = true;
+                                    // If a checkpoint was buffered before narration started, show it now
+                                    if (pendingCheckpointRef.current) {
+                                        setCheckpoint(pendingCheckpointRef.current);
+                                        setPaused(true);
+                                        pendingCheckpointRef.current = null;
+                                    }
+                                }
                                 // Also queue for Nova Sonic if panel is open
                                 if (showVoicePanel) {
                                     setVoiceSpeakQueue(q => [...q, { text: data.text }]);
@@ -709,8 +733,15 @@ export default function Tutor() {
                             } else if (evt === 'code_block') {
                                 setCodeBlocks(p => [...p, data]);
                             } else if (evt === 'checkpoint') {
-                                setCheckpoint({ ...data, subjectCode: selSubject.code });
-                                setPaused(true);
+                                const cpData = { ...data, subjectCode: selSubject.code };
+                                if (narrationStartedRef.current) {
+                                    // Narration already started — show checkpoint immediately
+                                    setCheckpoint(cpData);
+                                    setPaused(true);
+                                } else {
+                                    // Buffer it — will be released when first narration fires
+                                    pendingCheckpointRef.current = cpData;
+                                }
                             } else if (evt === 'done') {
                                 setLessonDone(true);
                             } else if (evt === 'error') {
@@ -721,7 +752,7 @@ export default function Tutor() {
                     }
                 }
             }
-            setLessonDone(true);
+            // lessonDone is set by the 'done' SSE event from the server, not here.
         } catch (e) {
             setLessonErr(e.message || 'Connection failed');
         } finally {
@@ -737,9 +768,9 @@ export default function Tutor() {
         setCheckpoint(null); setPaused(false);
     }, []);
 
-    // ── Confusion detection — called by CheckpointQuiz via onWrong prop ─────
+    // —— Confusion detection — called by CheckpointQuiz via onWrong prop —————
     // Tracks per-topic wrong answers this session and flags confused topics.
-    // Silently records confusion bump to SM-2 memory when ≥ 2 wrong answers.
+    // Silently records confusion bump to SM-2 memory when â‰¥ 2 wrong answers.
     const handleCheckpointWrong = useCallback((topic) => {
         if (!topic || !selSubject) return;
         const key = `${selSubject.code}::${topic}`;
@@ -767,7 +798,7 @@ export default function Tutor() {
         }
     }, [selSubject, sessionId]);
 
-    // ── V5 Doubt Resolver — called when student clicks 'Get Alternative Explanation' ──
+    // —— V5 Doubt Resolver — called when student clicks 'Get Alternative Explanation' ——
     const handleDoubtResolve = useCallback(async (topic) => {
         if (!selSubject || doubtLoading) return;
         setDoubtLoading(true);
@@ -787,6 +818,52 @@ export default function Tutor() {
             setDoubtLoading(false);
         }
     }, [selSubject, selTopic, doubtLoading]);
+
+    const handleVisionUpload = useCallback(async (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !selSubject || !selTopic) return;
+        
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload a valid image file (PNG, JPG).');
+            return;
+        }
+
+        setVisionLoading(true);
+        setCurrentSubtitle("Analyzing scanned image...");
+        setDiagramTitle("Vision Analysis");
+
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64 = reader.result;
+                try {
+                    const res = await tutorVisionAnalyze({
+                        topic: selTopic,
+                        image: base64
+                    });
+                    if (res?.mermaid) {
+                        setCurrentDiagram(res.mermaid);
+                        setCurrentSubtitle(res.explanation || "Analyzed successfully.");
+                        if (speech.voiceEnabled) speech.speak(res.explanation || "Analyzed successfully.");
+                    } else {
+                        setCurrentSubtitle("No diagram could be extracted from the image.");
+                    }
+                } catch (err) {
+                    setLessonErr(err.response?.data?.detail || err.message || 'Vision analysis failed');
+                    setCurrentSubtitle("Failed to analyze image.");
+                } finally {
+                    setVisionLoading(false);
+                }
+            };
+        } catch (err) {
+            setVisionLoading(false);
+            setCurrentSubtitle("Failed to process image file.");
+        }
+        
+        // Reset file input
+        if (visionInputRef.current) visionInputRef.current.value = '';
+    }, [selSubject, selTopic, speech]);
 
     const sendQuestion = useCallback(async (text) => {
         const q = (text || questionInput || '').trim();
@@ -850,7 +927,7 @@ export default function Tutor() {
                 />
             )}
 
-            {/* ── Left panel ─────────────────────────────────────────── */}
+            {/* — Left panel —————————————————————————————————————————— */}
             <aside className={styles.panel}>
                 <div className={styles.panelHeader}>
                     <TeacherAvatar state={avatarState} size={46} />
@@ -884,7 +961,7 @@ export default function Tutor() {
                         {doubtResolution && (
                             <div className={styles.doubtPanel}>
                                 <div className={styles.doubtPanelMode}>
-                                    {doubtResolution.mode === 'analogy' && '🎭 Analogy'}
+                                    {doubtResolution.mode === 'analogy' && '🎬 Analogy'}
                                     {doubtResolution.mode === 'example' && '📌 Concrete Example'}
                                     {doubtResolution.mode === 'breakdown' && '🔧 Step-by-Step'}
                                     {doubtResolution.mode === 'socratic' && '❓ Socratic Method'}
@@ -901,7 +978,7 @@ export default function Tutor() {
                                 <button
                                     className={styles.doubtDismiss}
                                     onClick={() => setDoubtResolution(null)}
-                                >✕ Dismiss</button>
+                                >✖ Dismiss</button>
                             </div>
                         )}
                     </div>
@@ -976,7 +1053,7 @@ export default function Tutor() {
                 )}
             </aside>
 
-            {/* ── Main workspace ─────────────────────────────────────── */}
+            {/* — Main workspace —————————————————————————————————————————— */}
             <div className={styles.workspace}>
                 {!selTopic ? (
                     <div className={styles.welcome}>
@@ -1043,7 +1120,7 @@ export default function Tutor() {
                                     <div className={styles.statusLeft}>
                                         {teaching && <>
                                             <span className={styles.liveDot} />
-                                            <span className={styles.statusText}>Teaching step {currentStep}{paused ? ' — Checkpoint ⏸' : '…'}</span>
+                                            <span className={styles.statusText}>Teaching step {currentStep}{paused ? ' — Checkpoint ⌃' : '…'}</span>
                                         </>}
                                         {lessonErr && <span className={styles.errText}><AlertTriangle size={13} /> {lessonErr}</span>}
                                         {!teaching && !lessonDone && !lessonErr && selTopic && (
@@ -1125,6 +1202,23 @@ export default function Tutor() {
                                         >
                                             <BookMarked size={14} />
                                         </button>
+                                        {/* V10: Vision Upload */}
+                                        <button
+                                            type="button"
+                                            className={`${styles.iconBtn} ${visionLoading ? styles.iconBtnAct : ''}`}
+                                            onClick={() => visionInputRef.current?.click()}
+                                            disabled={visionLoading}
+                                            title="Upload Scan / Image to Tutor"
+                                        >
+                                            {visionLoading ? <Loader2 size={14} className={styles.spin} /> : <ImageIcon size={14} />}
+                                        </button>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            ref={visionInputRef}
+                                            style={{ display: 'none' }}
+                                            onChange={handleVisionUpload}
+                                        />
                                     </div>
 
                                 </div>
@@ -1141,12 +1235,38 @@ export default function Tutor() {
                                 )}
                                 {/* Canvas + Rail */}
                                 <div className={styles.canvasRow}>
-                                    <Canvas
-                                        code={currentDiagram}
-                                        title={diagramTitle}
-                                        stepNum={currentStep}
-                                        totalSteps={totalPlanSteps}
-                                    />
+                                    <div className={styles.canvasWrapper}>
+                                        <Canvas
+                                            code={currentDiagram}
+                                            title={diagramTitle}
+                                            stepNum={currentStep}
+                                            totalSteps={totalPlanSteps}
+                                        />
+                                        {/* Cinematic Subtitles Overlay — anchored to canvas only */}
+                                        {(currentSubtitle || (teaching && !currentSubtitle)) && (
+                                            <div className={styles.subtitleContainer}>
+                                                <div className={styles.subtitleOverlay}>
+                                                    {currentSubtitle || "Tutor is preparing your lesson…"}
+                                                </div>
+                                                <div className={styles.subtitleControls}>
+                                                    <button
+                                                        onClick={speech.toggleVoice}
+                                                        className={styles.subCtrlBtn}
+                                                        title={speech.voiceEnabled ? "Mute Voice" : "Unmute Voice"}
+                                                    >
+                                                        {speech.voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={speech.listening ? speech.stopListening : speech.startListening}
+                                                        className={`${styles.subCtrlBtn} ${speech.listening ? styles.subCtrlMicActive : ''}`}
+                                                        title={speech.listening ? "Stop Mic" : "Start Mic"}
+                                                    >
+                                                        {speech.listening ? <Mic size={16} /> : <MicOff size={16} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                     {(steps.length > 0 || (lessonPlan?.steps?.length > 0)) && (
                                         <StepRail
                                             steps={steps}
@@ -1154,31 +1274,6 @@ export default function Tutor() {
                                             teaching={teaching}
                                             planSteps={lessonPlan?.steps || []}
                                         />
-                                    )}
-
-                                    {/* Cinematic Subtitles Overlay */}
-                                    {(currentSubtitle || (teaching && !currentSubtitle)) && (
-                                        <div className={styles.subtitleContainer}>
-                                            <div className={styles.subtitleOverlay}>
-                                                {currentSubtitle || "Tutor is preparing your lesson…"}
-                                            </div>
-                                            <div className={styles.subtitleControls}>
-                                                <button 
-                                                    onClick={speech.toggleVoice} 
-                                                    className={styles.subCtrlBtn} 
-                                                    title={speech.voiceEnabled ? "Mute Voice" : "Unmute Voice"}
-                                                >
-                                                    {speech.voiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-                                                </button>
-                                                <button 
-                                                    onClick={speech.listening ? speech.stopListening : speech.startListening} 
-                                                    className={`${styles.subCtrlBtn} ${speech.listening ? styles.subCtrlMicActive : ''}`}
-                                                    title={speech.listening ? "Stop Mic" : "Start Mic"}
-                                                >
-                                                    {speech.listening ? <Mic size={18} /> : <MicOff size={18} />}
-                                                </button>
-                                            </div>
-                                        </div>
                                     )}
                                 </div>
 
@@ -1257,7 +1352,7 @@ export default function Tutor() {
                 )}
             </div>
 
-            {/* ── Silence Alert Banner (V8) ──────────────────────────────── */}
+            {/* —— Silence Alert Banner (V8) ———————————————————————————————— */}
             {silenceAlert && (
                 <div style={{
                     position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
@@ -1267,18 +1362,18 @@ export default function Tutor() {
                     boxShadow: '0 4px 20px rgba(0,0,0,.2)',
                 }}>
                     <span style={{ fontSize: '1.1rem' }}>
-                        {silenceAlert.severity === 'high' ? '😵' : silenceAlert.severity === 'moderate' ? '🤔' : '💡'}
+                        {silenceAlert.severity === 'high' ? 'ðŸ˜µ' : silenceAlert.severity === 'moderate' ? 'ðŸ¤”' : '💡'}
                     </span>
                     <span>{silenceAlert.suggestion}</span>
                     <button
                         onClick={() => { setSilenceAlert(null); lastInteractRef.current = Date.now(); }}
                         style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '1rem' }}
-                    >✕</button>
+                    >✖</button>
                 </div>
             )}
         </div>
 
-        {/* ── Modal: Diagram History (V2) ──────────────────────────────── */}
+        {/* —— Modal: Diagram History (V2) ———————————————————————————————— */}
         {showDiagramHistory && (
             <DiagramHistory
                 sessionId={sessionId}
@@ -1286,7 +1381,7 @@ export default function Tutor() {
             />
         )}
 
-        {/* ── Modal: Peer Learning (V6) ────────────────────────────────── */}
+        {/* —— Modal: Peer Learning (V6) —————————————————————————————————— */}
         {showPeerRoom && (
             <PeerLearning
                 topic={selTopic || ''}
@@ -1295,7 +1390,7 @@ export default function Tutor() {
             />
         )}
 
-        {/* ── Modal: Study Mode Selector (V9) ─────────────────────────── */}
+        {/* —— Modal: Study Mode Selector (V9) ——————————————————————————— */}
         {showStudyMode && (
             <div style={{
                 position: 'fixed', inset: 0, background: 'rgba(0,0,0,.65)', zIndex: 990,
@@ -1306,8 +1401,8 @@ export default function Tutor() {
                     padding: 24, maxWidth: 400, width: '100%', maxHeight: '80vh', overflowY: 'auto',
                 }} onClick={e => e.stopPropagation()}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-1)' }}>📚 Study Mode</h3>
-                        <button onClick={() => setShowStudyMode(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', fontSize: '1rem' }}>✕</button>
+                        <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-1)' }}>ðŸ“š Study Mode</h3>
+                        <button onClick={() => setShowStudyMode(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', fontSize: '1rem' }}>✖</button>
                     </div>
                     <StudyModeSelector
                         currentMode={studyMode}

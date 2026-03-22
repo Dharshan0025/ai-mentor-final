@@ -28,7 +28,7 @@ async def get_pool() -> asyncpg.Pool:
             _pool = await asyncpg.create_pool(
                 dsn=settings.database_url,
                 min_size=2,
-                max_size=10,
+                max_size=5,
                 command_timeout=30,
                 ssl="require",             # Supabase requires SSL
             )
@@ -67,157 +67,111 @@ class Database:
 
     async def get_student_by_college_id(self, college_id: str) -> Optional[dict]:
         """Fetch full student profile by college ID (e.g. '22CSBS001')."""
-        # Fetch initial student data using one connection
-        row = await self._fetchrow_from_pool(
-            """
-            SELECT s.id, s.name, s.email, s.dept, s.current_semester,
-                   s.cgpa, s.college_id, s.year, s.college,
-                   s.attendance_overall, s.exam_days, s.study_streak,
-                   s.lang_pref, s.predicted_cgpa, s.arrear_count,
-                   s.parent_name, s.parent_phone, s.dob, s.gender,
-                   s.category, s.admission_year, s.total_credits_earned,
-                   s.total_credits_required, s.phone
-            FROM students s
-            WHERE s.college_id = $1
-            """,
-            college_id,
-        )
-        if not row:
-            return None
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            # Fetch initial student data
+            row = await conn.fetchrow(
+                """
+                SELECT s.id, s.name, s.email, s.dept, s.current_semester,
+                       s.cgpa, s.college_id, s.year, s.college,
+                       s.attendance_overall, s.exam_days, s.study_streak,
+                       s.lang_pref, s.predicted_cgpa, s.arrear_count,
+                       s.parent_name, s.parent_phone, s.dob, s.gender,
+                       s.category, s.admission_year, s.total_credits_earned,
+                       s.total_credits_required, s.phone
+                FROM students s
+                WHERE s.college_id = $1
+                """,
+                college_id,
+            )
+            if not row:
+                return None
 
-        student = dict(row)
-        sid = student["id"]
-        sem = student["current_semester"]
+            student = dict(row)
+            sid = student["id"]
+            sem = student["current_semester"]
 
-        # ── Parallel data fetch for ALL ERP sections, each using its own connection ──
-        (
-            cgpa_rows, subj_rows, arrear_rows, assign_rows, activity_rows,
-            placement_rows, syllabus_rows, att_summary, library_rows,
-            hist_subj_rows, next_sem_rows, fee_rows, mentor_rows, eligibility_rows,
-        ) = await asyncio.gather(
+            # ── Sequential data fetch to respect Supabase Session Mode limits ──
             # 1. CGPA history
-            self._fetch_from_pool(
-                "SELECT semester, cgpa FROM cgpa_history WHERE student_id=$1 ORDER BY semester",
-                sid,
-            ),
+            cgpa_rows = await conn.fetch("SELECT semester, cgpa FROM cgpa_history WHERE student_id=$1 ORDER BY semester", sid)
             # 2. Current semester subjects
-            self._fetch_from_pool(
-                """
-                SELECT code, name, grade, attendance, credit_weight,
-                       bloom_level, predicted, status
-                FROM subject_profiles
-                WHERE student_id=$1 AND semester=$2
-                ORDER BY status DESC, grade ASC
-                """,
-                sid, sem,
-            ),
-            # 3. Arrear history (all sems)
-            self._fetch_from_pool(
-                """SELECT subject_code, subject_name, semester_failed,
-                          cleared, cleared_at, cleared_grade, attempt_number
-                   FROM arrear_history WHERE student_id=$1 ORDER BY semester_failed DESC""",
-                sid,
-            ),
-            # 4. Assignments this semester
-            self._fetch_from_pool(
-                """
-                SELECT subject_code, title, type, max_marks, scored_marks,
-                       due_date, submitted_date, submission_status
-                FROM assignments WHERE student_id=$1 AND semester=$2
-                ORDER BY due_date DESC
-                """,
-                sid, sem,
-            ),
-            # 5. Activities (all time)
-            self._fetch_from_pool(
-                """
-                SELECT activity_type, title, organizer, level, domain,
-                       grade_or_score, verified, end_date
-                FROM activities WHERE student_id=$1 ORDER BY end_date DESC LIMIT 15
-                """,
-                sid,
-            ),
+            subj_rows = await conn.fetch(
+                "SELECT code, name, grade, attendance, credit_weight, bloom_level, predicted, status "
+                "FROM subject_profiles WHERE student_id=$1 AND semester=$2 ORDER BY status DESC, grade ASC",
+                sid, sem
+            )
+            # 3. Arrear history
+            arrear_rows = await conn.fetch(
+                "SELECT subject_code, subject_name, semester_failed, cleared, cleared_at, cleared_grade, attempt_number "
+                "FROM arrear_history WHERE student_id=$1 ORDER BY semester_failed DESC",
+                sid
+            )
+            # 4. Assignments
+            assign_rows = await conn.fetch(
+                "SELECT subject_code, title, type, max_marks, scored_marks, due_date, submitted_date, submission_status "
+                "FROM assignments WHERE student_id=$1 AND semester=$2 ORDER BY due_date DESC",
+                sid, sem
+            )
+            # 5. Activities
+            activity_rows = await conn.fetch(
+                "SELECT activity_type, title, organizer, level, domain, grade_or_score, verified, end_date "
+                "FROM activities WHERE student_id=$1 ORDER BY end_date DESC LIMIT 15",
+                sid
+            )
             # 6. Placement records
-            self._fetch_from_pool(
-                """
-                SELECT company_name, role, package_lpa, status, drive_date, placement_type
-                FROM placement_records WHERE student_id=$1 ORDER BY drive_date DESC
-                """,
-                sid,
-            ),
-            # 7. Syllabus coverage current sem
-            self._fetch_from_pool(
-                """
-                SELECT subject_code, subject_name, unit_number, unit_title,
-                       coverage_pct, total_topics, covered_topics
-                FROM syllabus_coverage WHERE semester=$1 ORDER BY subject_code, unit_number
-                """,
-                sem,
-            ),
-            # 8. Live attendance summary
-            self._fetch_from_pool(
-                """
-                SELECT subject_code,
-                       COUNT(*) AS total_classes,
-                       SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) AS attended,
-                       ROUND(100.0 * SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS live_pct
-                FROM attendance_records WHERE student_id=$1
-                GROUP BY subject_code
-                """,
-                sid,
-            ),
+            placement_rows = await conn.fetch(
+                "SELECT company_name, role, package_lpa, status, drive_date, placement_type "
+                "FROM placement_records WHERE student_id=$1 ORDER BY drive_date DESC",
+                sid
+            )
+            # 7. Syllabus coverage
+            syllabus_rows = await conn.fetch(
+                "SELECT subject_code, subject_name, unit_number, unit_title, coverage_pct, total_topics, covered_topics "
+                "FROM syllabus_coverage WHERE semester=$1 ORDER BY subject_code, unit_number",
+                sem
+            )
+            # 8. Attendance summary
+            att_summary = await conn.fetch(
+                "SELECT subject_code, COUNT(*) AS total_classes, "
+                "SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) AS attended, "
+                "ROUND(100.0 * SUM(CASE WHEN status='present' THEN 1 ELSE 0 END) / NULLIF(COUNT(*),0), 1) AS live_pct "
+                "FROM attendance_records WHERE student_id=$1 GROUP BY subject_code",
+                sid
+            )
             # 9. Library
-            self._fetch_from_pool(
-                "SELECT book_title, book_author, due_date, return_date, fine_amount, fine_paid, status FROM library_records WHERE student_id=$1 ORDER BY due_date DESC LIMIT 5",
-                sid,
-            ),
-            # 10. ── NEW: All historical subjects grouped by semester ──
-            self._fetch_from_pool(
-                """
-                SELECT semester, code, name, grade, attendance, credit_weight,
-                       bloom_level, status
-                FROM subject_profiles
-                WHERE student_id=$1 AND semester < $2
-                ORDER BY semester DESC, grade ASC
-                """,
-                sid, sem,
-            ),
-            # 11. ── NEW: Next semester subjects from department curriculum ──
-            self._fetch_from_pool(
-                """
-                SELECT dc.subject_code, dc.subject_title, dc.credits,
-                       dc.subject_type, dc.elective_vertical
-                FROM department_curriculum dc
-                WHERE dc.semester = $1
-                ORDER BY dc.subject_type, dc.subject_code
-                """,
-                sem + 1,
-            ),
-            # 12. ── NEW: Fee records ──
-            self._fetch_from_pool(
-                """
-                SELECT fee_type, amount_due, amount_paid, status, semester
-                FROM fee_records WHERE student_id=$1 ORDER BY semester DESC
-                """,
-                sid,
-            ),
-            # 13. ── NEW: Mentoring sessions ──
-            self._fetch_from_pool(
-                """
-                SELECT faculty_mentor, session_date, agenda, notes, action_items, parent_present
-                FROM mentoring_sessions WHERE student_id=$1 ORDER BY session_date DESC LIMIT 5
-                """,
-                sid,
-            ),
-            # 14. ── NEW: Placement eligibility ──
-            self._fetch_from_pool(
-                """
-                SELECT cgpa_eligible, arrear_free, attendance_ok, cgpa_threshold, is_eligible
-                FROM placement_eligibility WHERE student_id=$1
-                """,
-                sid,
-            ),
-        )
+            library_rows = await conn.fetch(
+                "SELECT book_title, book_author, due_date, return_date, fine_amount, fine_paid, status "
+                "FROM library_records WHERE student_id=$1 ORDER BY due_date DESC LIMIT 5",
+                sid
+            )
+            # 10. Historical subjects
+            hist_subj_rows = await conn.fetch(
+                "SELECT semester, code, name, grade, attendance, credit_weight, bloom_level, status "
+                "FROM subject_profiles WHERE student_id=$1 AND semester < $2 ORDER BY semester DESC, grade ASC",
+                sid, sem
+            )
+            # 11. Next semester subjects
+            next_sem_rows = await conn.fetch(
+                "SELECT dc.subject_code, dc.subject_title, dc.credits, dc.subject_type, dc.elective_vertical "
+                "FROM department_curriculum dc WHERE dc.semester = $1 ORDER BY dc.subject_type, dc.subject_code",
+                sem + 1
+            )
+            # 12. Fee records
+            fee_rows = await conn.fetch(
+                "SELECT fee_type, amount_due, amount_paid, status, semester FROM fee_records WHERE student_id=$1 ORDER BY semester DESC",
+                sid
+            )
+            # 13. Mentoring sessions
+            mentor_rows = await conn.fetch(
+                "SELECT faculty_mentor, session_date, agenda, notes, action_items, parent_present "
+                "FROM mentoring_sessions WHERE student_id=$1 ORDER BY session_date DESC LIMIT 5",
+                sid
+            )
+            # 14. Placement eligibility
+            eligibility_rows = await conn.fetch(
+                "SELECT cgpa_eligible, arrear_free, attendance_ok, cgpa_threshold, is_eligible FROM placement_eligibility WHERE student_id=$1",
+                sid
+            )
 
         student["cgpa_history"]     = [dict(r) for r in cgpa_rows]
         student["subjects"]         = [dict(r) for r in subj_rows]
@@ -1350,15 +1304,27 @@ class Database:
                 syllabus = await self.get_subject_syllabus(subject_code=code)
                 topic_list = []
                 for row in syllabus:
+                    # 1. Add Unit Title as a primary topic
                     unit_title = (row.get("unit_title") or "").strip()
-                    if unit_title:
+                    if unit_title and unit_title not in topic_list:
                         topic_list.append(unit_title)
-                    raw = row.get("topics") or ""
-                    if isinstance(raw, str) and raw.strip():
-                        for part in raw.replace("\n", ",").split(","):
-                            t = part.strip()
-                            if t and t not in topic_list:
-                                topic_list.append(t)
+                    
+                    # 2. Add granular topics if present
+                    raw = row.get("topics")
+                    if raw:
+                        # Handle both ARRAY (list) and string formats
+                        parts = []
+                        if isinstance(raw, list):
+                            parts = raw
+                        elif isinstance(raw, str):
+                            parts = raw.replace("\n", ",").split(",")
+                        
+                        for p in parts:
+                            if isinstance(p, str):
+                                t = p.strip()
+                                if t and t not in topic_list:
+                                    topic_list.append(t)
+                                    
                 topics_by_subject[code] = topic_list
 
             return {

@@ -580,7 +580,7 @@ async def get_lesson_plan(student_id: str, subject_code: str = "", topic: str = 
     try:
         mem = MemoryAgent()
         sm2_data = await mem.get_weak_areas(
-            student_id=student_id,
+            student["db_id"],
             subject_code=subject_code,
             top_n=8,
         )
@@ -1757,3 +1757,87 @@ async def build_tutor_context(student_id: str, subject_code: str, topic: str) ->
         "accuracy": accuracy,
         "peak_hour": peak_hour,
     }
+
+@router.post("/student/{student_id}/tutor/vision")
+async def tutor_vision(student_id: str, request: Request):
+    """
+    Multimodal Vision OCR endpoint using NVIDIA NIM APIs.
+    Expects JSON: { image: "base64_string_with_data_url", topic: "string" }
+    """
+    body = await request.json()
+    base64_image = body.get("image")
+    topic = body.get("topic", "General")
+    
+    if not base64_image:
+        raise HTTPException(status_code=400, detail="image is required")
+        
+    if "," in base64_image:
+        base64_image = base64_image.split(",")[1]
+
+    if not settings.nvidia_api_key:
+        raise HTTPException(status_code=500, detail="NVIDIA NIM API key not configured")
+
+    try:
+        from openai import AsyncOpenAI
+        import re
+        import json
+        
+        client = AsyncOpenAI(
+            base_url=settings.nvidia_base_url,
+            api_key=settings.nvidia_api_key
+        )
+        
+        system_prompt = f"""You are an expert AI Tutor analyzing a scanned image (textbook diagram or notes) for the topic "{topic}".
+Analyze the concepts presented.
+STRICTLY output a valid JSON containing exactly two fields:
+1. "explanation": A concise 2-sentence explanation of the image.
+2. "mermaid": A valid Mermaid.js diagram (e.g., flowchart TD) representing the parsed concepts. Use clear, short labels.
+
+Output ONLY the JSON object. Do not wrap in markdown tags if possible."""
+        
+        vision_model = "meta/llama-3.2-90b-vision-instruct" 
+        
+        response = await client.chat.completions.create(
+            model=vision_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Analyze this image and return the JSON."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=2048,
+            temperature=0.3
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        match = re.search(r"```(?:json)?\s*(.*?)\s*```", content, re.DOTALL)
+        if match:
+            content = match.group(1).strip()
+            
+        try:
+            parsed = json.loads(content)
+            return parsed
+        except json.JSONDecodeError:
+            mermaid_match = re.search(r"```mermaid\s*\n(.*?)```", content, re.DOTALL)
+            mermaid_code = mermaid_match.group(1).strip() if mermaid_match else ""
+            return {
+                "explanation": content.split("```")[0][:500].strip(),
+                "mermaid": mermaid_code
+            }
+
+    except Exception as e:
+        logger.error(f"Vision API error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Vision API failed: {str(e)}")
