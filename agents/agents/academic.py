@@ -4,7 +4,7 @@ Handles: subject Q&A, grade lookups, past paper analysis,
          DAG prerequisite enforcement, Bloom's gating.
 LLM: Groq llama-3.3-70b (fast, free tier)
 """
-from langchain_groq import ChatGroq
+from utils.llm import get_llm
 from langchain_core.messages import HumanMessage, SystemMessage
 from config import settings
 import logging
@@ -121,12 +121,7 @@ async def _get_rag_context(message: str, *, exam_focus: bool = False, student_id
 
 async def academic_node(state: dict) -> dict:
     """Academic agent — subject Q&A grounded in ERP profile with Bloom's gating and RAG."""
-    llm = ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0.3,
-        max_tokens=600,
-    )
+    llm, provider = get_llm(temperature=0.3, max_tokens=600)
 
     profile = state.get("student_profile", {})
     message = state["message"]
@@ -213,7 +208,7 @@ async def academic_node(state: dict) -> dict:
         "rag_context": rag_context,
         "citations": citations,
         "tokens_used": state.get("tokens_used", 0),
-        "model_used": settings.groq_model,
+        "model_used": provider,
     }
 
 

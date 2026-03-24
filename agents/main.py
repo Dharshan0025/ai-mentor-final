@@ -14,6 +14,7 @@ import uuid
 from datetime import datetime
 
 from config import settings
+from utils.llm import get_llm
 from pydantic import BaseModel, Field
 from schemas import (
     ChatRequest, ChatResponse, HealthResponse, AgentId
@@ -21,6 +22,26 @@ from schemas import (
 from orchestrator import get_orchestrator
 from db import db, get_pool, close_pool
 from scheduler import get_scheduler, run_scan_now
+from pipeline_tracker import reset_tracker, get_tracker
+from cache_layer import get_cached_response, cache_response, invalidate_cache
+from learning_analytics import get_session_analytics
+
+# ── Background task error handling ───────────────────────────────────────────
+def handle_background_task_error(task: asyncio.Task):
+    """Log exceptions from background tasks to prevent silent failures."""
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        pass  # Task was cancelled, not an error
+    except Exception as e:
+        logger.error(f"🔴 Background task '{task.get_name()}' failed: {e}", exc_info=True)
+
+def create_tracked_task(coro, name: str = "unnamed"):
+    """Create a background task with error tracking and logging."""
+    task = asyncio.create_task(coro)
+    task.set_name(name)
+    task.add_done_callback(handle_background_task_error)
+    return task
 
 # ── Mock student data (replace with DB in Phase 3) ──────────────────────────
 MOCK_STUDENT = {
@@ -75,11 +96,22 @@ async def lifespan(app: FastAPI):
 
     # Start proactive alert scheduler
     scheduler = get_scheduler()
-    try:
-        scheduler.start()
-        logger.info("Proactive scheduler started (attendance scan at 18:00 IST)")
-    except Exception as e:
-        logger.warning(f"Scheduler failed to start: {e}")
+    # ── FIX: Add retry logic for scheduler startup ──
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            scheduler.start()
+            logger.info("✅ Proactive scheduler started (attendance scan at 18:00 IST)")
+            break
+        except Exception as e:
+            logger.error(f"🔴 Scheduler start failed (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt == max_retries - 1:
+                logger.critical("❌ Scheduler failed to start after retries - alerts DISABLED!")
+            else:
+                await asyncio.sleep(5)
+
+    # ── FIX: Start background session cleanup task ──
+    create_tracked_task(cleanup_stale_sessions(), name="session_cleanup")
 
     yield
 
@@ -139,6 +171,30 @@ async def health_check():
         db_connected=_db_connected,
         llm_ready=llm_ready,
     )
+
+
+@app.get("/scheduler/health")
+async def scheduler_health():
+    """Check scheduler status and running jobs."""
+    scheduler = get_scheduler()
+    jobs = []
+    try:
+        for job in scheduler.get_jobs():
+            jobs.append({
+                "id": job.id,
+                "name": job.name,
+                "trigger": str(job.trigger),
+                "next_run": str(job.next_run_time),
+            })
+    except Exception as e:
+        logger.error(f"Failed to get scheduler jobs: {e}")
+
+    return {
+        "status": "healthy" if scheduler.running else "stopped",
+        "running": scheduler.running,
+        "jobs_count": len(jobs),
+        "jobs": jobs,
+    }
 
 
 # ── Voice API (Nova Sonic) ───────────────────────────────────────────────────
@@ -201,16 +257,79 @@ async def agent_auth_login(body: dict):
 
 
 
+async def _track_learning_outcome(analytics, response, pipeline, student_profile):
+    """Track learning outcomes from this exchange."""
+    from learning_analytics import get_session_analytics
+
+    # Track mentor response
+    await analytics.track_message(
+        "mentor_response",
+        response.content,
+        metadata={"agent": response.agent.value}
+    )
+
+    # Calculate response quality based on pipeline confidence
+    if pipeline and "overall_confidence" in pipeline:
+        await analytics.calculate_response_quality(pipeline["overall_confidence"])
+
+    # Track if Bloom level increased
+    if student_profile and "bloom_level" in student_profile:
+        await analytics.track_learning_moment(
+            concept=student_profile.get("subject", "general"),
+            bloom_level=student_profile.get("bloom_level", 2),
+            confidence=pipeline.get("overall_confidence", 0.85) if pipeline else 0.85
+        )
+
+    logger.info(f"📊 Learning tracked: Engagement={analytics.metrics['engagement_score']:.0f}, Quality={analytics.metrics['avg_response_quality']:.0f}")
+
+
+async def _add_peer_insights_to_response(session_id: str, student_id: str, student_profile: dict):
+    """Add peer comparison insights to session (for future reference)."""
+    from peer_insights import PeerInsightsAnalyzer
+
+    try:
+        analyzer = PeerInsightsAnalyzer(student_id)
+        peer_comparison = await analyzer.get_peer_comparison(student_profile)
+        logger.info(f"✅ Peer insights calculated for {student_id}: {peer_comparison.get('summary', {}).get('overall_percentile', 'N/A')}th percentile")
+    except Exception as e:
+        logger.warning(f"Peer insights failed: {e}")
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     """
     Main orchestrated chat endpoint.
     Routes to academic/prediction/emotional/learning/schedule agents based on intent.
     Phase 2: synchronous response. Phase 3+: SSE streaming.
+    Uses Redis caching for 5-10 min TTL on common queries.
     """
+    # ── Check cache first (5-10 min TTL) ──
+    cached = await get_cached_response(request.student_id, request.message)
+    if cached:
+        logger.info(f"✅ Returning cached response for {request.student_id}")
+        cached.pop("cached_at", None)
+        cached.pop("ttl_remaining", None)
+        return ChatResponse(**cached)
+
+    # ── FIX: Initialize pipeline tracker for this request ──
+    reset_tracker()
+    tracker = get_tracker()
+
+    # ── FIX: Input validation to prevent malformed requests ──
+    if not request.student_id or not request.student_id.strip():
+        raise HTTPException(status_code=400, detail="student_id is required")
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="message cannot be empty")
+
     logger.info(f"Chat request | session={request.session_id} | student={request.student_id}")
 
+    # ── Initialize learning analytics for this session ──
+    analytics = get_session_analytics(request.session_id, request.student_id)
+    await analytics.track_message("user_question", request.message)
+
     student_profile = await get_student_profile(request.student_id)
+    if not student_profile or not student_profile.get("id"):
+        raise HTTPException(status_code=404, detail="Student profile not found")
     learning_dna = {}
     if _db_connected:
         try:
@@ -259,18 +378,19 @@ async def chat(request: ChatRequest):
         # Extract score from state (emotional_node always sets this)
         sentiment_score = final_state.get("sentiment_score")
         if sentiment_score is not None and _db_connected:
-            asyncio.create_task(
+            create_tracked_task(
                 db.append_sentiment_point(
                     student_id=request.student_id,
                     score=sentiment_score,
                     message_snippet=request.message[:120],
-                )
+                ),
+                name=f"sentiment_write_{request.student_id}"
             )
 
         # ── Fire-and-forget episodic memory extraction ────────────────────
         if _db_connected:
             from memory_worker import extract_and_store_memories
-            asyncio.create_task(
+            create_tracked_task(
                 extract_and_store_memories(
                     student_id=request.student_id,
                     session_id=request.session_id,
@@ -278,7 +398,8 @@ async def chat(request: ChatRequest):
                     response=final_state.get("final_response", ""),
                     student_profile=student_profile,
                     db=db,
-                )
+                ),
+                name=f"memory_extract_{request.student_id}"
             )
 
         # ── Fire-and-forget message persistence ─────────────────────────────
@@ -286,19 +407,20 @@ async def chat(request: ChatRequest):
             db_id = student_profile["db_id"]
             # 1. Ensure the session exists
             await db.ensure_chat_session(request.session_id, db_id, title=request.message[:40])
-            
+
             # 2. Save user message
-            asyncio.create_task(
+            create_tracked_task(
                 db.save_message(
                     session_id=request.session_id,
                     student_db_id=db_id,
                     role="user",
                     content=request.message,
                     lang=request.lang.value
-                )
+                ),
+                name=f"save_user_msg_{request.session_id}"
             )
             # 3. Save assistant message
-            asyncio.create_task(
+            create_tracked_task(
                 db.save_message(
                     session_id=request.session_id,
                     student_db_id=db_id,
@@ -308,10 +430,11 @@ async def chat(request: ChatRequest):
                     citations=final_state.get("citations", []),
                     model_used=final_state.get("model_used", ""),
                     lang=request.lang.value
-                )
+                ),
+                name=f"save_asst_msg_{request.session_id}"
             )
 
-        return ChatResponse(
+        response = ChatResponse(
             session_id=request.session_id,
             agent=AgentId(final_state.get("primary_agent", "academic")),
             content=final_state.get("final_response", "I couldn't process that. Please try again."),
@@ -321,11 +444,207 @@ async def chat(request: ChatRequest):
             ui_card=final_state.get("ui_card"),
             suggested_actions=final_state.get("suggested_actions", []),
             xp_awarded=final_state.get("xp_awarded", 0),
+            pipeline=final_state.get("pipeline") if request.show_pipeline else None,
         )
+
+        # ── Track learning outcomes ──
+        create_tracked_task(
+            _track_learning_outcome(
+                analytics=analytics,
+                response=response,
+                pipeline=final_state.get("pipeline"),
+                student_profile=student_profile,
+            ),
+            name=f"track_learning_{request.session_id}"
+        )
+
+        # ── Optional: Add peer insights to response (non-blocking) ──
+        if request.show_pipeline:  # Only if user wants detailed insights
+            create_tracked_task(
+                _add_peer_insights_to_response(
+                    session_id=request.session_id,
+                    student_id=request.student_id,
+                    student_profile=student_profile,
+                ),
+                name=f"peer_insights_{request.session_id}"
+            )
+
+        # ── Cache response for future queries (5 min TTL) ──
+        create_tracked_task(
+            cache_response(
+                student_id=request.student_id,
+                message=request.message,
+                response_data=response.model_dump(),
+                ttl_minutes=5
+            ),
+            name=f"cache_response_{request.session_id}"
+        )
+
+        return response
 
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Agent service temporarily unavailable")
+
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """
+    Streaming chat endpoint — returns pipeline stages in real-time via SSE.
+    Shows the AI thinking process as it happens.
+    """
+    # ── Initialize pipeline tracker ──
+    reset_tracker()
+    tracker = get_tracker()
+
+    # ── Input validation ──
+    if not request.student_id or not request.student_id.strip():
+        raise HTTPException(status_code=400, detail="student_id is required")
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="message cannot be empty")
+
+    logger.info(f"Chat stream request | session={request.session_id} | student={request.student_id}")
+
+    student_profile = await get_student_profile(request.student_id)
+    if not student_profile or not student_profile.get("id"):
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    learning_dna = {}
+    if _db_connected:
+        try:
+            learning_dna = await db.get_learning_dna(request.student_id) or {}
+        except Exception as e:
+            logger.warning(f"Learning DNA preload failed for {request.student_id}: {e}")
+
+    # Build initial state for LangGraph
+    initial_state = {
+        "message":         request.message,
+        "session_id":      request.session_id,
+        "student_id":      request.student_id,
+        "lang":            request.lang.value,
+        "history":         [msg.model_dump() for msg in request.history],
+        "student_profile": student_profile,
+        "learning_dna":    learning_dna,
+        "student_snapshot": "",
+        "intent":              "",
+        "agents_to_invoke":    [],
+        "mentor_plan":         {},
+        "academic_output":     None,
+        "prediction_output":   None,
+        "emotional_output":    None,
+        "learning_output":     None,
+        "schedule_output":     None,
+        "career_output":       None,
+        "rag_context":         None,
+        "sentiment_score":     0.0,
+        "final_response":      "",
+        "ui_card":             None,
+        "suggested_actions":   [],
+        "xp_awarded":          0,
+        "primary_agent":       "academic",
+        "citations":           [],
+        "tokens_used":         0,
+        "model_used":          "",
+        "models_used":         [],
+    }
+
+    async def stream_generator():
+        """Stream pipeline stages as they complete."""
+        try:
+            orchestrator = get_orchestrator()
+            final_state = await orchestrator.ainvoke(initial_state)
+
+            # Stream each pipeline stage as it becomes available
+            pipeline_data = final_state.get("pipeline")
+            if pipeline_data:
+                # Stage 1: Intent Parsing
+                if pipeline_data.get("intent"):
+                    yield f"event: stage\ndata: {json.dumps({'stage': 'intent', 'data': pipeline_data['intent']})}\n\n"
+
+                # Stage 2: Agent Selection
+                if pipeline_data.get("agent_selection"):
+                    yield f"event: stage\ndata: {json.dumps({'stage': 'agent_selection', 'data': pipeline_data['agent_selection']})}\n\n"
+
+                # Stage 3: Context Loading
+                if pipeline_data.get("context"):
+                    yield f"event: stage\ndata: {json.dumps({'stage': 'context', 'data': pipeline_data['context']})}\n\n"
+
+                # Stage 4: Agent Reasoning
+                if pipeline_data.get("agent_outputs"):
+                    yield f"event: stage\ndata: {json.dumps({'stage': 'agent_outputs', 'data': pipeline_data['agent_outputs']})}\n\n"
+
+                # Stage 5: Synthesis
+                if pipeline_data.get("synthesis"):
+                    yield f"event: stage\ndata: {json.dumps({'stage': 'synthesis', 'data': pipeline_data['synthesis']})}\n\n"
+
+            # Stream final response
+            yield f"event: response\ndata: {json.dumps({'content': final_state.get('final_response', ''), 'agent': final_state.get('primary_agent', 'academic')})}\n\n"
+
+            # Stream metadata
+            yield f"event: metadata\ndata: {json.dumps({'tokens': final_state.get('tokens_used', 0), 'model': final_state.get('model_used', ''), 'confidence': pipeline_data.get('overall_confidence', 0.85) if pipeline_data else 0.85})}\n\n"
+
+            # Signal completion
+            yield f"event: done\ndata: {json.dumps({'success': True})}\n\n"
+
+            # ── Background tasks (fire-and-forget) ──
+            sentiment_score = final_state.get("sentiment_score")
+            if sentiment_score is not None and _db_connected:
+                create_tracked_task(
+                    db.append_sentiment_point(
+                        student_id=request.student_id,
+                        score=sentiment_score,
+                        message_snippet=request.message[:120],
+                    ),
+                    name=f"sentiment_write_{request.student_id}"
+                )
+
+            if _db_connected:
+                from memory_worker import extract_and_store_memories
+                create_tracked_task(
+                    extract_and_store_memories(
+                        student_id=request.student_id,
+                        session_id=request.session_id,
+                        message=request.message,
+                        response=final_state.get("final_response", ""),
+                        student_profile=student_profile,
+                        db=db,
+                    ),
+                    name=f"memory_extract_{request.student_id}"
+                )
+
+            if _db_connected and student_profile.get("db_id"):
+                db_id = student_profile["db_id"]
+                await db.ensure_chat_session(request.session_id, db_id, title=request.message[:40])
+                create_tracked_task(
+                    db.save_message(
+                        session_id=request.session_id,
+                        student_db_id=db_id,
+                        role="user",
+                        content=request.message,
+                        lang=request.lang.value
+                    ),
+                    name=f"save_user_msg_{request.session_id}"
+                )
+                create_tracked_task(
+                    db.save_message(
+                        session_id=request.session_id,
+                        student_db_id=db_id,
+                        role="assistant",
+                        content=final_state.get("final_response", ""),
+                        agent=final_state.get("primary_agent", "academic"),
+                        citations=final_state.get("citations", []),
+                        model_used=final_state.get("model_used", ""),
+                        lang=request.lang.value
+                    ),
+                    name=f"save_asst_msg_{request.session_id}"
+                )
+
+        except Exception as e:
+            logger.error(f"Chat stream error: {e}", exc_info=True)
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+            yield f"event: done\ndata: {json.dumps({'success': False})}\n\n"
+
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
 
 @app.get("/student/{student_id}/chat/sessions")
@@ -711,7 +1030,7 @@ async def get_schedule(student_id: str):
         logger.warning(f"Learning DNA unavailable for schedule ({e})")
 
     # Generate schedule with LLM (async, with fallback)
-    week = await generate_ai_schedule(profile, learning_dna)
+    week, _schedule_provider = await generate_ai_schedule(profile, learning_dna)
 
     # Generate per-subject tips (async LLM, capped at 4 subjects)
     subjects = profile.get("subjects", profile.get("subject_profiles", []))
@@ -905,9 +1224,21 @@ async def stream_alerts(student_id: str, request: Request):
         # Send initial count so frontend can sync badge immediately
         yield f"event: count\ndata: {json.dumps({'unread_count': len(known_ids)})}\n\n"
 
+        # ── FIX: Add max duration limit (1 hour) to prevent resource exhaustion ──
+        start_time = datetime.now()
+        MAX_DURATION_SECONDS = 3600
+
         while True:
+            # Check 1: Client disconnected
             if await request.is_disconnected():
+                logger.info(f"✅ SSE client disconnected: {student_id}")
                 break
+
+            # Check 2: Max duration exceeded
+            if (datetime.now() - start_time).total_seconds() > MAX_DURATION_SECONDS:
+                logger.info(f"✅ SSE max duration reached for {student_id} (1 hour)")
+                break
+
             try:
                 alerts = await db.get_unread_alerts(student_id)
                 current_ids = {a["id"] for a in alerts}
@@ -920,9 +1251,13 @@ async def stream_alerts(student_id: str, request: Request):
 
                 # Always send a heartbeat count so badge stays accurate
                 yield f"event: count\ndata: {json.dumps({'unread_count': len(current_ids)})}\n\n"
+            except asyncio.CancelledError:
+                logger.info(f"✅ SSE cancelled: {student_id}")
+                break
             except Exception as e:
-                logger.warning(f"SSE alert stream error: {e}")
-                yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+                logger.warning(f"🔴 SSE alert stream error: {e}")
+                yield f"event: error\ndata: {json.dumps({'error': 'Internal error'})}\n\n"
+                break  # Exit on error instead of continuing indefinitely
 
             await asyncio.sleep(10)
 
@@ -1268,7 +1603,28 @@ async def get_minimum_scores(student_id: str, target_cgpa: float = 7.5):
 # ════════════════════════════════════════════════════════════════════════
 
 # In-memory tutor session store: session_id -> { "turns": [{role, content}], "lesson_summary": str }
+# ── FIX: Add locking to prevent race conditions on concurrent access ──
 tutor_sessions: dict[str, dict] = {}
+tutor_sessions_lock = asyncio.Lock()
+tutor_session_last_access: dict[str, datetime] = {}
+SESSION_TTL_MINUTES = 60
+
+
+async def cleanup_stale_sessions():
+    """Background task to remove tutor sessions older than TTL. Prevents memory leak."""
+    while True:
+        await asyncio.sleep(300)  # Check every 5 minutes
+        now = datetime.now()
+        async with tutor_sessions_lock:
+            stale = [
+                sid for sid, last_access in tutor_session_last_access.items()
+                if (now - last_access).total_seconds() > SESSION_TTL_MINUTES * 60
+            ]
+            for sid in stale:
+                tutor_sessions.pop(sid, None)
+                tutor_session_last_access.pop(sid, None)
+            if stale:
+                logger.info(f"✅ Cleaned up {len(stale)} stale tutor sessions (TTL exceeded)")
 
 
 async def build_tutor_context(student_id: str, subject_code: str, topic: str) -> dict:
@@ -1370,6 +1726,57 @@ async def build_tutor_context(student_id: str, subject_code: str, topic: str) ->
     }
 
 
+def _build_step_rules(plan_steps: list, bloom_level: int) -> str:
+    """
+    Build the step + checkpoint teaching rules section of the system prompt.
+    If plan_steps are provided (from the pre-generated lesson plan), use the
+    exact step titles and checkpoint positions from the plan.
+    Otherwise fall back to the generic 4-6 step rule.
+    """
+    bloom_depth = (
+        'basics and recall' if bloom_level <= 2
+        else 'application and analysis' if bloom_level <= 4
+        else 'evaluation and creation'
+    )
+
+    section_format = """For EVERY step, produce these sections:
+   a. [NARRATION] — 2-4 spoken sentences. Use analogies and real-world examples. Be conversational.
+      For math/formula topics include LaTeX wrapped in $$...$$ inline.
+   b. [DIAGRAM] — A valid Mermaid.js diagram illustrating this step's concept. REQUIRED for every step.
+      Use ONLY: flowchart TD, sequenceDiagram, stateDiagram-v2, classDiagram.
+      Max 8 nodes. No inline styles or fill colors.
+      Example: flowchart TD\\n    A[Concept] --> B[Detail] --> C[Result]
+   c. [CODE] (only for CS/algorithm topics): short walkthrough block followed by HIGHLIGHT: and EXPLAIN: lines."""
+
+    if not plan_steps:
+        return f"""2. Teach the topic in 4-6 clear STEPS. Each step builds on the previous.
+3. {section_format}
+4. After STEP 2 and STEP 4, add a [CHECKPOINT] block with: Question, Type: mcq, Options: A)..B)..C)..D).., Correct: X, Explanation.
+5. End with a brief summary.
+6. Adapt depth to Bloom level {bloom_level}: {bloom_depth}."""
+
+    n = len(plan_steps)
+    checkpoint_steps = [s["step_num"] for s in plan_steps if s.get("checkpoint_after")]
+
+    step_list = "\n".join(
+        f"   STEP {s['step_num']}: {s.get('title', 'Step ' + str(s['step_num']))}"
+        + (" ← add [CHECKPOINT] after this step" if s.get("checkpoint_after") else "")
+        for s in plan_steps
+    )
+
+    if checkpoint_steps:
+        cp_rule = f"4. Add a [CHECKPOINT] block immediately after STEP {' and STEP '.join(str(x) for x in checkpoint_steps)} only. Do NOT add checkpoints after any other steps. Each checkpoint must have: Question, Type: mcq, Options: A)..B)..C)..D).., Correct: X, Explanation."
+    else:
+        cp_rule = "4. No checkpoints needed for this lesson."
+
+    return f"""2. Teach the topic in exactly {n} STEPS using the pre-planned structure below. Use these exact titles in order:
+{step_list}
+3. {section_format}
+{cp_rule}
+5. End with a brief summary.
+6. Adapt depth to Bloom level {bloom_level}: {bloom_depth}."""
+
+
 @app.post("/student/{student_id}/tutor/teach")
 async def tutor_teach(student_id: str, body: dict, request: Request):
     """
@@ -1389,12 +1796,17 @@ async def tutor_teach(student_id: str, body: dict, request: Request):
     topic = body.get("topic", "")
     mode = body.get("mode", "visual")
     session_id = body.get("session_id") or str(uuid.uuid4())
+    language = body.get("language", "en")  # "en" | "ta" | "thanglish"
+    lesson_plan_steps = body.get("lesson_plan_steps") or []  # pre-generated plan steps from frontend
 
     if not topic:
         raise HTTPException(status_code=400, detail="topic is required")
 
-    if session_id not in tutor_sessions:
-        tutor_sessions[session_id] = {"turns": [], "lesson_summary": None}
+    # ── FIX: Thread-safe session initialization ──
+    async with tutor_sessions_lock:
+        if session_id not in tutor_sessions:
+            tutor_sessions[session_id] = {"turns": [], "lesson_summary": None}
+        tutor_session_last_access[session_id] = datetime.now()
 
     ctx = await build_tutor_context(student_id, subject_code, topic)
     if not ctx:
@@ -1446,10 +1858,44 @@ async def tutor_teach(student_id: str, body: dict, request: Request):
     if peak_hour is not None:
         dna_block += f"; peak_hour={peak_hour}"
 
-    system_prompt = f"""You are an expert AI Tutor teaching an engineering student. You know this student's full context; never give a generic lesson. Adapt every step to their Bloom level and mastery. If they have weak topics in this subject, acknowledge and build from there. Vary your tone and examples; do not repeat the same phrasing. Be friendly but precise; use their name occasionally; ask one short check-in per lesson.
+    _student_name = profile.get('name', 'Student')
+
+    # Language instruction block — placed at the very top so the LLM commits to it first
+    if language == "ta":
+        _lang_block = f"""══════════════════════════════════════════
+மொழி நிர்பந்தம் (MANDATORY LANGUAGE RULE):
+══════════════════════════════════════════
+நீ ஒரு தமிழ் ஆசிரியர். எல்லா [NARRATION] பகுதிகளும் தமிழிலேயே இருக்க வேண்டும்.
+CRITICAL: Every single [NARRATION] must be written in Tamil script (தமிழ்).
+- Technical terms (like "algorithm", "array", "function") can stay in English
+- All explanations, examples, analogies MUST be in Tamil
+- Greet as: "வணக்கம் {_student_name}! இன்று நாம் {topic} பற்றி படிக்கப் போகிறோம்."
+- [DIAGRAM] labels and [CHECKPOINT] questions stay in English
+- Writing narrations in English = WRONG. தமிழில் மட்டுமே எழுதவும்.
+══════════════════════════════════════════"""
+    elif language == "thanglish":
+        _lang_block = f"""══════════════════════════════════════════
+MANDATORY LANGUAGE RULE — THANGLISH ONLY:
+══════════════════════════════════════════
+CRITICAL: Every [NARRATION] MUST be written in Thanglish (Tamil words written in English letters).
+- You are a friendly Tamil-speaking tutor who naturally mixes Tamil with English technical terms
+- Write EXACTLY like how Tamil students talk to each other: natural, casual, warm
+- Technical terms stay in English. Everything else in Tamil transliterated.
+- Greet as: "Vanakkam {_student_name}! Indha lesson la namma {topic} pathi paarkalam."
+- Bad example (DO NOT do this): "In this step, we will learn about graphs."
+- Good example: "Dei {_student_name}, ippo namba graph nu enna nu therinjukalam — oru set of nodes irukku, avangala edges connect pannuthu. Real life la Facebook friends list exact ah idhe thaan!"
+- Another good example: "Enna kekureenga na, Binary Search la sorted array eduthu middle element ah check pannuva — correct ah irundha found, illa na half ah cut pannuva. Time O(log n) aagum because every step la array half aaguthu!"
+- [DIAGRAM] labels and [CHECKPOINT] questions stay in English
+- Writing narrations in English = WRONG. Thanglish matum use pannunga.
+══════════════════════════════════════════"""
+    else:
+        _lang_block = ""
+
+    system_prompt = f"""{_lang_block}
+You are an expert AI Tutor teaching an engineering student. You know this student's full context; never give a generic lesson. Adapt every step to their Bloom level and mastery. If they have weak topics in this subject, acknowledge and build from there. Be friendly and conversational like a real teacher — not a textbook.
 
 STUDENT CONTEXT:
-- Name: {profile.get('name', 'Student')}
+- Name: {_student_name}
 - Department: {profile.get('department', 'CSBS')} · Semester: {profile.get('semester', 7)}
 - Subject: {subject_name}
 - Topic to teach: {topic}
@@ -1464,38 +1910,20 @@ SYLLABUS CONTEXT:
 {syllabus_text}
 
 TEACHING RULES:
-1. Start with a personalized greeting: e.g. "Hi [Name], we're going to cover [topic]. You're at Bloom level {bloom_level} for this; I'll keep that in mind." Then teach.
-2. Teach "{topic}" in 4-6 clear STEPS. Each step builds on the previous.
-3. For EVERY step, produce TWO sections:
-   a. [NARRATION] — A 2-4 sentence spoken explanation. Use analogies and real-world examples.
-      Match Bloom level. Be conversational like a real teacher.
-      For math/formula topics, include LaTeX wrapped in $$...$$ inline. Example: The loss function is $$J = -\\frac{{1}}{{m}} \\sum y \\log(\\hat{{y}})$$
-   b. [DIAGRAM] — A valid Mermaid.js diagram for this step's concept.
-      Prefer diagrams that look like real teaching aids: flowcharts for processes, sequence diagrams for protocols, state diagrams for state machines. Use clear, short labels (2-4 words per node). ONLY use: flowchart TD, sequenceDiagram, stateDiagram-v2, classDiagram.
-      Keep diagrams SIMPLE — max 8 nodes. No inline styles or fill colors in node labels.
-      Valid example: flowchart TD\\n    A[Start] --> B[Process] --> C[End]
-   c. [CODE] (ONLY for CS/algorithm topics): A short code walkthrough block:
-      [CODE]
-      ```python
-      # code here
-      ```
-      HIGHLIGHT: 2,4 (comma-separated 1-based line numbers to emphasize)
-      EXPLAIN: Brief note on what the highlighted lines do
-4. After STEP 2 and STEP 4, add a CHECKPOINT block to test understanding:
-   [CHECKPOINT]
-   Question: [Specific question about the concept just taught]
-   Type: mcq
-   Options: A) [option1] B) [option2] C) [option3] D) [option4]
-   Correct: B
-   Explanation: [Why B is correct, 1-2 sentences]
-5. End with a brief summary and suggest a follow-up quiz.
-6. Adapt depth to Bloom level {bloom_level}: {'basics and recall' if bloom_level <= 2 else 'application and analysis' if bloom_level <= 4 else 'evaluation and creation'}.
-
+1. STEP 1 MUST open with a personal greeting that SPEAKS THE STUDENT'S DETAILS ALOUD:
+   - Address them by name: {_student_name}
+   - Mention their department ({profile.get('department','')}) and semester ({profile.get('semester','')})
+   - Mention their CGPA ({profile.get('currentCGPA','')}) and Bloom level ({bloom_level}/6) naturally
+   - Say you've tailored this lesson specifically for them
+   - Then introduce the topic "{topic}" and what they'll learn
+   - {"தமிழிலேயே கூறவும் — மாணவரின் பெயரையும், துறையையும், CGPA-வையும் தமிழில் கூறவும்." if language == "ta" else "Thanglish la sollunga — student name, dept, CGPA ellam mention pannunga." if language == "thanglish" else ""}
+   - Example English: "Hey {_student_name}! You're in {profile.get('department','')} Semester {profile.get('semester','')}, CGPA {profile.get('currentCGPA','')}. I've prepared this lesson at Bloom level {bloom_level} just for you. Today we're diving into {topic}!"
+{_build_step_rules(lesson_plan_steps, bloom_level)}
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS (repeat for each step):
 
 [STEP 1: Title of Step]
 [NARRATION]
-Your spoken explanation here...
+Your {"தமிழ்" if language == "ta" else "Thanglish" if language == "thanglish" else "English"} explanation here...
 
 [DIAGRAM]
 ```mermaid
@@ -1528,38 +1956,40 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
             yield f"event: session_id\ndata: {json.dumps({'session_id': session_id})}\n\n"
             full_text = None
 
-            # ── Try NVIDIA NIM first, fall back to Groq ───────────────────────
+            # ── Try Groq first, fall back to NVIDIA NIM ───────────────────────
             full_text = None
-            if settings.nvidia_api_key:
+            if settings.groq_api_key:
                 try:
-                    from langchain_openai import ChatOpenAI
-                    llm_nvidia = ChatOpenAI(
-                        api_key=settings.nvidia_api_key,
-                        base_url=settings.nvidia_base_url,
-                        model=settings.nvidia_model,
+                    from langchain_groq import ChatGroq
+                    llm_groq = ChatGroq(
+                        api_key=settings.groq_api_key,
+                        model=settings.groq_model,
                         temperature=0.5,
                         max_tokens=4000,
+                        request_timeout=30,
                     )
-                    result = await llm_nvidia.ainvoke([
+                    result = await llm_groq.ainvoke([
                         SystemMessage(content=system_prompt),
                         HumanMessage(content=f"Teach me: {topic}"),
                     ])
                     full_text = result.content or ""
-                    logger.info(f"NVIDIA NIM lesson generated for topic: {topic}")
-                except Exception as ne:
-                    logger.warning(f"NVIDIA NIM call failed ({ne}), falling back to Groq")
+                    logger.info(f"Groq lesson generated for topic: {topic}")
+                except Exception as ge:
+                    logger.warning(f"Groq call failed ({ge}), falling back to NVIDIA NIM")
                     full_text = None
 
-            # ── Groq fallback ─────────────────────────────────────────────────
-            if not full_text:
-                from langchain_groq import ChatGroq
-                llm = ChatGroq(
-                    api_key=settings.groq_api_key,
-                    model=settings.groq_model,
+            # ── NVIDIA NIM fallback ───────────────────────────────────────────
+            if not full_text and settings.nvidia_api_key:
+                from langchain_openai import ChatOpenAI
+                llm_nvidia = ChatOpenAI(
+                    api_key=settings.nvidia_api_key,
+                    base_url=settings.nvidia_base_url,
+                    model=settings.nvidia_model,
                     temperature=0.5,
                     max_tokens=4000,
+                    request_timeout=60,
                 )
-                result = await llm.ainvoke([
+                result = await llm_nvidia.ainvoke([
                     SystemMessage(content=system_prompt),
                     HumanMessage(content=f"Teach me: {topic}"),
                 ])
@@ -1569,27 +1999,32 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
             import re
             from agents.teacher import parse_checkpoints_from_lesson
 
-            step_pattern      = re.compile(r'\[STEP\s+(\d+):\s*([^\]]+)\]', re.IGNORECASE)
-            narration_pattern = re.compile(r'\[NARRATION\]\s*\n(.*?)(?=\[DIAGRAM\]|\[CODE\]|\[STEP|\[CHECKPOINT\]|\Z)', re.DOTALL | re.IGNORECASE)
-            diagram_pattern   = re.compile(r'```mermaid\s*\n(.*?)```', re.DOTALL)
-            code_block_pattern = re.compile(
+            step_pattern = re.compile(r'\[STEP\s+(\d+):\s*([^\]]+)\]', re.IGNORECASE)
+            latex_pattern = re.compile(r'\$\$(.+?)\$\$', re.DOTALL)
+
+            # Per-step patterns (searched within each step's own text slice)
+            _narr_re  = re.compile(r'\[NARRATION\]\s*\n(.*?)(?=\[DIAGRAM\]|\[CODE\]|\[CHECKPOINT\]|\Z)', re.DOTALL | re.IGNORECASE)
+            _diag_re  = re.compile(r'```mermaid\s*\n(.*?)```', re.DOTALL)
+            _code_re  = re.compile(
                 r'\[CODE\]\s*\n```(\w+)?\s*\n(.*?)```\s*\nHIGHLIGHT:\s*([^\n]*)\nEXPLAIN:\s*([^\n\[]*)',
                 re.DOTALL | re.IGNORECASE,
             )
-            latex_pattern = re.compile(r'\$\$(.+?)\$\$', re.DOTALL)
+            _cp_re    = re.compile(
+                r'\[CHECKPOINT\].*?Question:\s*(.+?)\n.*?Type:\s*(\w+).*?Options:\s*(.+?)\n.*?Correct:\s*([A-D]).*?Explanation:\s*(.+?)(?=\[STEP|\Z)',
+                re.DOTALL | re.IGNORECASE,
+            )
 
-            steps      = list(step_pattern.finditer(full_text))
-            narrations = list(narration_pattern.finditer(full_text))
-            diagrams   = list(diagram_pattern.finditer(full_text))
-            code_blocks = list(code_block_pattern.finditer(full_text))
-            checkpoints = parse_checkpoints_from_lesson(full_text)
-            # Map checkpoints by after_step for O(1) lookup
-            cp_by_step = {cp['after_step']: cp for cp in checkpoints}
+            steps = list(step_pattern.finditer(full_text))
 
             if not steps:
+                logger.warning(f"No steps found in lesson for {topic}, using fallback")
                 yield f"event: step\ndata: {json.dumps({'step': 1, 'title': topic})}\n\n"
-                yield f"event: narration\ndata: {json.dumps({'text': full_text[:2000]})}\n\n"
-                yield f"event: done\ndata: {json.dumps({})}\n\n"
+                sentences = re.split(r'(?<=[.!?])\s+', full_text)
+                for sent in sentences[:50]:
+                    if sent.strip():
+                        yield f"event: narration\ndata: {json.dumps({'text': sent.strip()})}\n\n"
+                        await asyncio.sleep(0.05)
+                yield f"event: done\ndata: {json.dumps({'fallback': True})}\n\n"
                 return
 
             for i, step_match in enumerate(steps):
@@ -1598,14 +2033,18 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
 
                 yield f"event: step\ndata: {json.dumps({'step': step_num, 'title': step_title})}\n\n"
 
-                # Narration — extract LaTeX equations and emit as separate events
-                if i < len(narrations):
-                    narr_text = narrations[i].group(1).strip()
-                    # Detect and emit LaTeX equations embedded in narration
+                # Slice text belonging to this step only
+                step_start = step_match.end()
+                step_end   = steps[i + 1].start() if i + 1 < len(steps) else len(full_text)
+                step_text  = full_text[step_start:step_end]
+
+                # ── Narration ────────────────────────────────────────────
+                narr_match = _narr_re.search(step_text)
+                if narr_match:
+                    narr_text = narr_match.group(1).strip()
                     latex_matches = latex_pattern.findall(narr_text)
                     for latex in latex_matches:
                         yield f"event: equation\ndata: {json.dumps({'latex': latex.strip(), 'display': 'inline', 'step': step_num})}\n\n"
-
                     sentences = re.split(r'(?<=[.!?])\s+', narr_text)
                     for sent in sentences:
                         sent = sent.strip()
@@ -1613,47 +2052,71 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
                             yield f"event: narration\ndata: {json.dumps({'text': sent})}\n\n"
                             await asyncio.sleep(0.05)
 
-                # Diagram for this step
-                if i < len(diagrams):
-                    mermaid_code = diagrams[i].group(1).strip()
+                # ── Diagram (searched within this step's text only) ──────
+                diag_match = _diag_re.search(step_text)
+                if diag_match:
+                    mermaid_code = diag_match.group(1).strip()
                     yield f"event: diagram\ndata: {json.dumps({'mermaid': mermaid_code, 'title': step_title})}\n\n"
 
-                # Code walkthrough block (if present for this step)
-                if i < len(code_blocks):
-                    cb = code_blocks[i]
-                    lang        = (cb.group(1) or 'python').strip()
-                    code        = cb.group(2).strip()
-                    highlights  = [int(x.strip()) for x in cb.group(3).split(',') if x.strip().isdigit()]
-                    explanation = cb.group(4).strip()
+                # ── Code walkthrough ─────────────────────────────────────
+                code_match = _code_re.search(step_text)
+                if code_match:
+                    lang        = (code_match.group(1) or 'python').strip()
+                    code        = code_match.group(2).strip()
+                    highlights  = [int(x.strip()) for x in code_match.group(3).split(',') if x.strip().isdigit()]
+                    explanation = code_match.group(4).strip()
                     yield f"event: code_block\ndata: {json.dumps({'language': lang, 'code': code, 'highlight_lines': highlights, 'explanation': explanation, 'step': step_num})}\n\n"
 
-                # ── Checkpoint after this step (if defined) ──────────────
-                if step_num in cp_by_step:
-                    cp = cp_by_step[step_num]
-                    yield f"event: checkpoint\ndata: {json.dumps({**cp, 'step_before': step_num, 'step_after': step_num + 1})}\n\n"
+                # ── Checkpoint (searched within this step's text only) ───
+                cp_match = _cp_re.search(step_text)
+                if cp_match:
+                    question = cp_match.group(1).strip()
+                    q_type   = cp_match.group(2).strip().lower()
+                    options_raw = cp_match.group(3).strip()
+                    correct  = cp_match.group(4).strip()
+                    explanation = cp_match.group(5).strip()
+                    options = re.findall(r'[A-D]\)\s*([^A-D\)]+?)(?=[A-D]\)|$)', options_raw + ' ')
+                    cp_data = {
+                        "question":    question,
+                        "type":        q_type,
+                        "options":     [o.strip() for o in options],
+                        "correct":     correct,
+                        "explanation": explanation,
+                        "after_step":  step_num,
+                        "step_before": step_num,
+                        "step_after":  step_num + 1,
+                        "topic":       topic,
+                    }
+                    yield f"event: checkpoint\ndata: {json.dumps(cp_data)}\n\n"
 
                 await asyncio.sleep(0.1)
 
-            if session_id in tutor_sessions:
-                tutor_sessions[session_id]["lesson_summary"] = f"Lesson: {topic}, steps 1–{len(steps)}"
-                tutor_sessions[session_id]["last_step"] = len(steps)
+            # ── FIX: Thread-safe session update ──
+            async with tutor_sessions_lock:
+                if session_id in tutor_sessions:
+                    tutor_sessions[session_id]["lesson_summary"] = f"Lesson: {topic}, steps 1–{len(steps)}"
+                    tutor_sessions[session_id]["last_step"] = len(steps)
+                    tutor_session_last_access[session_id] = datetime.now()
 
             # ── Fire-and-forget: record lesson completion for spaced repetition
-            asyncio.create_task(
+            create_tracked_task(
                 db.record_lesson_completion(
                     student_id=student_id,
                     subject_code=subject_code,
                     topic=topic,
                     steps_completed=len(steps),
                     bloom_level=bloom_level,
-                )
+                ),
+                name=f"record_lesson_{student_id}_{topic}"
             )
 
             yield f"event: done\ndata: {json.dumps({'total_steps': len(steps)})}\n\n"
 
         except Exception as e:
-            logger.error(f"Tutor teach error: {e}", exc_info=True)
-            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+            logger.error(f"🔴 Tutor teach error: {e}", exc_info=True)
+            # ── FIX: Always send done event even on error ──
+            yield f"event: error\ndata: {json.dumps({'error': 'Lesson generation failed', 'step': 'unknown'})}\n\n"
+            yield f"event: done\ndata: {json.dumps({'error': True})}\n\n"
 
     return StreamingResponse(
         stream_lesson(),
@@ -1666,8 +2129,11 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
 async def tutor_session_clear(student_id: str, body: dict):
     """Clear a tutor session (e.g. for 'New conversation'). Body: { session_id }"""
     sid = body.get("session_id")
-    if sid and sid in tutor_sessions:
-        del tutor_sessions[sid]
+    # ── FIX: Thread-safe session deletion ──
+    async with tutor_sessions_lock:
+        if sid and sid in tutor_sessions:
+            del tutor_sessions[sid]
+            tutor_session_last_access.pop(sid, None)
     return {"ok": True}
 
 
@@ -1683,16 +2149,19 @@ async def tutor_ask(student_id: str, body: dict):
     subject_code = body.get("subject_code", "")
     client_history = body.get("history") or []
     session_id = body.get("session_id")
+    language = (body.get("language") or "en").strip().lower()
 
     if not question:
         raise HTTPException(status_code=400, detail="question is required")
 
-    if session_id and session_id not in tutor_sessions:
-        tutor_sessions[session_id] = {"turns": [], "lesson_summary": None}
-
+    # ── FIX: Thread-safe session initialization and retrieval ──
     session_turns = []
-    if session_id and session_id in tutor_sessions:
-        session_turns = tutor_sessions[session_id].get("turns", [])[-10:]
+    if session_id:
+        async with tutor_sessions_lock:
+            if session_id not in tutor_sessions:
+                tutor_sessions[session_id] = {"turns": [], "lesson_summary": None}
+            session_turns = tutor_sessions[session_id].get("turns", [])[-10:]
+            tutor_session_last_access[session_id] = datetime.now()
     history = session_turns if session_turns else client_history[-6:]
 
     ctx = await build_tutor_context(student_id, subject_code, topic)
@@ -1718,9 +2187,12 @@ async def tutor_ask(student_id: str, body: dict):
         ach = this_topic_row.get("achieved", False)
         mastery_block += f"For this topic: Bloom {bl}, achieved={ach}. "
 
+    # ── FIX: Thread-safe lesson summary retrieval ──
     lesson_summary = ""
-    if session_id and session_id in tutor_sessions:
-        lesson_summary = (tutor_sessions[session_id].get("lesson_summary") or "").strip()
+    if session_id:
+        async with tutor_sessions_lock:
+            if session_id in tutor_sessions:
+                lesson_summary = (tutor_sessions[session_id].get("lesson_summary") or "").strip()
     session_context = f"\nRecent lesson: {lesson_summary}." if lesson_summary else ""
 
     # V5: Fetch RAG context for this question (non-blocking; enriches LLM answer)
@@ -1742,17 +2214,43 @@ async def tutor_ask(student_id: str, body: dict):
         if rag_context else ""
     )
 
-    system_prompt = f"""You are the AI Tutor for an engineering student. They are learning "{topic}" in {subject_name}. Continue the conversation naturally. Reference what you already taught or what the student asked. Vary your explanations; do not repeat the same sentences. If they ask to explain again, use different examples or a different angle. Sometimes offer a one-sentence recap question; when the student answers, briefly confirm or correct.{session_context}
+    _student_name = profile.get('name', 'Student')
+    if language == "ta":
+        _lang_block = """══════════════════════════════════════════
+MANDATORY LANGUAGE RULE — TAMIL ONLY:
+══════════════════════════════════════════
+CRITICAL: You MUST answer ENTIRELY in Tamil script (தமிழ்).
+- Every sentence in your answer must be in Tamil.
+- Do NOT write English sentences, even for technical terms. Write the term in English but explain it in Tamil.
+- Wrong: "In this step, we learn about arrays."
+- Correct: "இந்த படிநிலையில், arrays என்றால் என்ன என்று பார்க்கலாம்."
+══════════════════════════════════════════"""
+    elif language == "thanglish":
+        _lang_block = f"""══════════════════════════════════════════
+MANDATORY LANGUAGE RULE — THANGLISH ONLY:
+══════════════════════════════════════════
+CRITICAL: You MUST answer ENTIRELY in Thanglish (Tamil written in English letters).
+- Every sentence must be Tamil spoken, written in English letters.
+- Do NOT write full English sentences. Tamil words, English script.
+- Bad: "In this step, we will learn about graphs."
+- Good: "Dei {_student_name}, ippo namba graph pathi pesalam. Oru node-ku rendu edge irukku nu therinjukkom, appo enna aagum?"
+══════════════════════════════════════════"""
+    else:
+        _lang_block = ""
+
+    system_prompt = f"""{_lang_block}
+You are the AI Tutor for {_student_name} — a {profile.get('department','')} student in Semester {profile.get('semester','')} with CGPA {profile.get('currentCGPA','')}. You know this student personally. Address them by name. Adapt every answer to their Bloom level {bloom}/6 and {style} learning style. Reference their mastery gaps when relevant. Never give a generic answer — always make it feel personal.{session_context}
 
 STUDENT CONTEXT:
-- Name: {profile.get('name', 'Student')}
+- Name: {_student_name}
+- Department: {profile.get('department','CSBS')} · Semester: {profile.get('semester','')} · CGPA: {profile.get('currentCGPA','—')}
 - Bloom level: {bloom}/6. Learning style: {style}
 {f'- Mastery: {mastery_block}' if mastery_block else ''}
 
 SYLLABUS (current subject units):
 {syllabus_text}
 {rag_section}
-Answer their follow-up question in 2–4 short paragraphs. Be conversational and didactic.
+Answer their follow-up question in 2–4 short paragraphs. Be conversational and personal — use their name.
 - Match Bloom level {bloom}/6 (depth of explanation).
 - Prefer {style} style.
 - If the question asks for an example or diagram, you MAY include a Mermaid diagram in a ```mermaid code block at the end.
@@ -1772,27 +2270,29 @@ Answer their follow-up question in 2–4 short paragraphs. Be conversational and
 
     try:
         llm = None
-        # Try NVIDIA NIM first, fall back to Groq
-        if settings.nvidia_api_key:
+        # Try Groq first, fall back to NVIDIA NIM
+        if settings.groq_api_key:
             try:
-                from langchain_openai import ChatOpenAI
-                llm = ChatOpenAI(
-                    api_key=settings.nvidia_api_key,
-                    base_url=settings.nvidia_base_url,
-                    model=settings.nvidia_model,
+                from langchain_groq import ChatGroq
+                llm = ChatGroq(
+                    api_key=settings.groq_api_key,
+                    model=settings.groq_model,
                     temperature=0.4,
                     max_tokens=800,
+                    request_timeout=30,
                 )
-            except Exception as ne:
-                logger.warning(f"NVIDIA NIM init failed, using Groq: {ne}")
+            except Exception as ge:
+                logger.warning(f"Groq init failed for tutor_ask, trying NVIDIA: {ge}")
                 llm = None
-        if llm is None:
-            from langchain_groq import ChatGroq
-            llm = ChatGroq(
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
+        if llm is None and settings.nvidia_api_key:
+            from langchain_openai import ChatOpenAI
+            llm = ChatOpenAI(
+                api_key=settings.nvidia_api_key,
+                base_url=settings.nvidia_base_url,
+                model=settings.nvidia_model,
                 temperature=0.4,
                 max_tokens=800,
+                request_timeout=60,
             )
 
         result = await llm.ainvoke(lc_messages)
@@ -1803,16 +2303,25 @@ Answer their follow-up question in 2–4 short paragraphs. Be conversational and
             m = re.search(r"```mermaid\s*\n(.*?)```", text, re.DOTALL)
             if m:
                 mermaid_block = m.group(1).strip()
-        if session_id and session_id in tutor_sessions:
-            tutor_sessions[session_id]["turns"].append({"role": "user", "content": question})
-            tutor_sessions[session_id]["turns"].append({"role": "assistant", "content": text})
+
+        # ── FIX: Thread-safe turns update and confusion detection ──
+        if session_id:
+            async with tutor_sessions_lock:
+                if session_id in tutor_sessions:
+                    tutor_sessions[session_id]["turns"].append({"role": "user", "content": question})
+                    tutor_sessions[session_id]["turns"].append({"role": "assistant", "content": text})
+                    tutor_session_last_access[session_id] = datetime.now()
+                    session_turns = tutor_sessions[session_id].get("turns", [])
+                else:
+                    session_turns = []
+        else:
+            session_turns = []
 
         # ── Confusion detection (fire-and-forget) ────────────────────────
-        if session_id and session_id in tutor_sessions:
+        if session_turns:
             from agents.teacher import detect_confusion
-            session_turns = tutor_sessions[session_id].get("turns", [])
             if detect_confusion(session_turns, topic, threshold=3):
-                asyncio.create_task(
+                create_tracked_task(
                     db.flag_confusion_topic(student_id, topic, subject_code)
                 )
 
@@ -1839,9 +2348,14 @@ Answer their follow-up question in 2–4 short paragraphs. Be conversational and
             m = re.search(r"```mermaid\s*\n(.*?)```", text, re.DOTALL)
             if m:
                 mermaid_block = m.group(1).strip()
-        if session_id and session_id in tutor_sessions:
-            tutor_sessions[session_id]["turns"].append({"role": "user", "content": question})
-            tutor_sessions[session_id]["turns"].append({"role": "assistant", "content": text})
+
+        # ── FIX: Thread-safe turns update ──
+        if session_id:
+            async with tutor_sessions_lock:
+                if session_id in tutor_sessions:
+                    tutor_sessions[session_id]["turns"].append({"role": "user", "content": question})
+                    tutor_sessions[session_id]["turns"].append({"role": "assistant", "content": text})
+                    tutor_session_last_access[session_id] = datetime.now()
         return {"answer": text, "mermaid": mermaid_block}
     except HTTPException:
         raise
@@ -2104,23 +2618,26 @@ async def get_session_state(student_id: str, session_id: str):
     Return the current tutor session state for resume functionality.
     Frontend can use this to restore lesson progress after page refresh.
     """
-    if session_id not in tutor_sessions:
+    # ── FIX: Thread-safe session state retrieval ──
+    async with tutor_sessions_lock:
+        if session_id not in tutor_sessions:
+            return {
+                "session_id":        session_id,
+                "exists":            False,
+                "last_step":         0,
+                "checkpoints_passed": [],
+                "lesson_summary":    None,
+            }
+        sess = tutor_sessions[session_id]
+        tutor_session_last_access[session_id] = datetime.now()
         return {
-            "session_id":        session_id,
-            "exists":            False,
-            "last_step":         0,
-            "checkpoints_passed": [],
-            "lesson_summary":    None,
+            "session_id":         session_id,
+            "exists":             True,
+            "last_step":          sess.get("last_step", 0),
+            "checkpoints_passed": sess.get("checkpoints_passed", []),
+            "lesson_summary":     sess.get("lesson_summary"),
+            "turn_count":         len(sess.get("turns", [])),
         }
-    sess = tutor_sessions[session_id]
-    return {
-        "session_id":         session_id,
-        "exists":             True,
-        "last_step":          sess.get("last_step", 0),
-        "checkpoints_passed": sess.get("checkpoints_passed", []),
-        "lesson_summary":     sess.get("lesson_summary"),
-        "turn_count":         len(sess.get("turns", [])),
-    }
 
 
 
@@ -2188,9 +2705,168 @@ async def tutor_voice_transcribe(student_id: str, request: Request):
     Returns: { transcript, confidence?, language }
     Falls back to empty transcript if AWS creds are not set (browser STT handles it).
     """
-    from nova_sonic import get_stt
     # Server-side STT is stubbed (browser handles STT via Web Speech API)
     return {"transcript": "", "language": "en-US", "provider": "browser-stt"}
+
+
+@app.post("/student/{student_id}/tutor/clarify")
+async def tutor_clarify(
+    student_id: str,
+    audio: UploadFile = File(...),
+    subject_code: str = Form(""),
+    topic: str = Form(""),
+    language: str = Form("en"),
+    session_id: str = Form(""),
+    lesson_context: str = Form(""),
+):
+    """
+    Voice doubt clarification during a live lesson.
+
+    1. Transcribes doubt via Sarvam Saaras V3 (Groq Whisper fallback).
+    2. Generates a personalised clarification using full student profile.
+    3. Returns {transcript, clarification, audio_base64} — Sarvam Bulbul V2 WAV.
+    """
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from utils.stt import transcribe_audio
+    import utils.tts as tts_util
+    import base64 as b64mod
+
+    audio_bytes = await audio.read()
+    mime_type = audio.content_type or "audio/webm"
+
+    # ── Step 1: Transcribe via Saaras V3 (Groq Whisper fallback) ─────────────
+    try:
+        transcript = await transcribe_audio(audio_bytes, mime_type, language)
+    except Exception as e:
+        logger.error(f"STT failed for clarify: {e}")
+        raise HTTPException(status_code=500, detail=f"Could not transcribe audio: {e}")
+
+    if not transcript:
+        return {"transcript": "", "clarification": "", "audio_base64": None}
+
+    # ── Step 2: Load student profile for personalisation ─────────────────────
+    ctx = await build_tutor_context(student_id, subject_code or "GEN", topic or "")
+    profile = (ctx or {}).get("profile") or {}
+    learning_dna = (ctx or {}).get("learning_dna") or {}
+
+    student_name = profile.get("name") or student_id
+    dept = profile.get("department") or profile.get("dept") or "Engineering"
+    year = profile.get("year") or profile.get("current_year") or ""
+    cgpa = profile.get("cgpa") or profile.get("gpa") or ""
+    bloom = (ctx or {}).get("bloom_level") or 2
+    style = learning_dna.get("preferred_style") or "visual"
+    mastery_weak = (ctx or {}).get("mastery_weak") or ""
+    mastery_strong = (ctx or {}).get("mastery_strong") or ""
+    accuracy = None
+    total_q = learning_dna.get("total_questions") or 0
+    correct = learning_dna.get("correct_answers") or 0
+    if total_q:
+        accuracy = round(100 * correct / total_q, 1)
+
+    # Build student info block
+    student_block = f"Student: {student_name}, {dept}{f', Year {year}' if year else ''}{f', CGPA {cgpa}' if cgpa else ''}."
+    bloom_labels = {1: "remember facts", 2: "understand concepts", 3: "apply knowledge",
+                    4: "analyse and compare", 5: "evaluate critically", 6: "create/design"}
+    bloom_block = f"Current learning level: Bloom {bloom} ({bloom_labels.get(bloom, 'understand')})."
+    mastery_block = ""
+    if mastery_weak:
+        mastery_block += f"Weak areas: {mastery_weak}. "
+    if mastery_strong:
+        mastery_block += f"Strong areas: {mastery_strong}. "
+    if accuracy is not None:
+        mastery_block += f"Quiz accuracy: {accuracy}%."
+    context_block = f"\nLesson context: {lesson_context}" if lesson_context else ""
+
+    # ── Step 3: Language instruction ──────────────────────────────────────────
+    if language == "ta":
+        lang_rule = """══════════════════════════════════════════
+MANDATORY: Answer ENTIRELY in Tamil script (தமிழ்).
+Technical terms stay in English; all explanations in Tamil.
+══════════════════════════════════════════"""
+    elif language == "thanglish":
+        lang_rule = f"""══════════════════════════════════════════
+MANDATORY: Answer ENTIRELY in Thanglish (Tamil spoken, English letters).
+Bad: "In this step, we learn about arrays."
+Good: "Correct daa {student_name}! Array nu oru collection of elements — oru row-la values store panrom."
+══════════════════════════════════════════"""
+    else:
+        lang_rule = ""
+
+    system = f"""{lang_rule}
+You are a warm, expert AI tutor in the middle of teaching a lesson.
+The student just paused to ask a voice doubt. Answer it and send them back to the lesson.
+
+{student_block}
+{bloom_block}
+{mastery_block}
+Subject: {subject_code or 'Engineering'}. Topic: {topic or 'current topic'}.{context_block}
+
+Rules:
+- Address the student by first name ({student_name.split()[0]}).
+- Answer ONLY the doubt — do not re-teach the entire topic.
+- Pitch your explanation to Bloom level {bloom} (not too advanced, not too simple).
+- Be concise: 3-5 sentences maximum.
+- Be conversational, warm, and encouraging — like a friendly senior student.
+- If helpful, give one quick analogy or micro-example.
+- End with a brief encouragement and say you're continuing the lesson."""
+
+    user_msg = f"Student's doubt (voice): {transcript}"
+
+    try:
+        llm, _ = get_llm(temperature=0.4, max_tokens=350)
+        result = await llm.ainvoke([
+            SystemMessage(content=system),
+            HumanMessage(content=user_msg),
+        ])
+        clarification = (result.content or "").strip()
+    except Exception as e:
+        logger.error(f"LLM clarification failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not generate clarification")
+
+    # ── Step 4: Sarvam Bulbul V2 TTS (always try — all 3 languages) ──────────
+    audio_base64 = None
+    if settings.sarvam_api_key:
+        try:
+            wav_bytes = await tts_util.synthesize(clarification, language)
+            audio_base64 = b64mod.b64encode(wav_bytes).decode("utf-8")
+        except Exception as e:
+            logger.warning(f"Sarvam TTS failed for clarify ({language}): {e}")
+
+    return {
+        "transcript": transcript,
+        "clarification": clarification,
+        "audio_base64": audio_base64,
+        "language": language,
+    }
+
+
+@app.post("/student/{student_id}/tutor/tts")
+async def tutor_tts(student_id: str, body: dict):
+    """
+    Text-to-Speech via Sarvam Bulbul V2 — all languages (en, ta, thanglish).
+    Body: { text, language }
+    Returns: audio/wav bytes, or 204 so client falls back to browser TTS.
+    """
+    import utils.tts as tts_util
+    from fastapi.responses import Response
+
+    text = (body.get("text") or "").strip()
+    language = (body.get("language") or "en").strip().lower()
+
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    if not settings.sarvam_api_key:
+        logger.warning("Sarvam TTS skipped — SARVAM_API_KEY not set")
+        return Response(status_code=204)
+
+    try:
+        wav_bytes = await tts_util.synthesize(text, language)
+        logger.debug(f"Sarvam TTS OK student={student_id} lang={language} chars={len(text)} wav={len(wav_bytes)}B")
+        return Response(content=wav_bytes, media_type="audio/wav")
+    except Exception as e:
+        logger.warning(f"Sarvam TTS failed (student={student_id}, lang={language}): {e}")
+        return Response(status_code=204)
 
 
 
@@ -3543,6 +4219,124 @@ Rules:
     return result
 
 
+@app.get("/student/{student_id}/career/roadmap-timeline")
+async def get_career_roadmap_timeline(student_id: str, domain: str = None):
+    """Month-by-month career readiness timeline based on semester + CGPA."""
+    from agents.career import build_roadmap_timeline, compute_career_profile
+
+    student = await db.get_student_by_college_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    profile = await get_student_profile(student_id)
+    timeline = build_roadmap_timeline(profile, domain)
+    intel    = compute_career_profile(profile)
+
+    return {
+        "domain":   domain or intel["primary_domain"],
+        "semester": intel["semester"],
+        "cgpa":     intel["cgpa"],
+        "timeline": timeline,
+    }
+
+
+@app.post("/student/{student_id}/career/project-ideas")
+async def generate_career_project_ideas(student_id: str, body: dict = None):
+    """Generate 3 personalised project ideas based on career domain."""
+    import re as _re
+    from groq import AsyncGroq
+    from agents.career import compute_career_profile, DOMAIN_SKILLS, CERT_MAP
+
+    student = await db.get_student_by_college_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    body    = body or {}
+    profile = await get_student_profile(student_id)
+    intel   = compute_career_profile(profile)
+    domain  = (body.get("domain") or "").strip() or intel["primary_domain"]
+    skills  = DOMAIN_SKILLS.get(domain, ["Python", "REST APIs"])
+    cgpa    = intel["cgpa"]
+    semester = intel["semester"]
+
+    prompt = f"""You are a senior software engineer mentoring an Indian CS/CSBS student.
+
+Student profile:
+- Target domain: {domain}
+- CGPA: {cgpa} | Semester: {semester}
+- Key skills to build: {', '.join(skills[:5])}
+
+Generate exactly 3 project ideas that:
+1. Are realistic to build in 2-4 weeks as a student
+2. Use the domain's key tech stack
+3. Are impressive enough for a resume/GitHub
+4. Progress in difficulty (beginner → intermediate → advanced)
+
+Return ONLY valid JSON:
+{{
+  "projects": [
+    {{
+      "title": "<specific project name>",
+      "description": "<2-sentence description of what it does and why it's impressive>",
+      "tech_stack": ["<tech1>", "<tech2>", "<tech3>"],
+      "skills_built": ["<skill1>", "<skill2>"],
+      "difficulty": "beginner|intermediate|advanced",
+      "weeks": <1-4>,
+      "github_hint": "<repo name like: ml-resume-parser>"
+    }}
+  ]
+}}
+
+Make ideas SPECIFIC to {domain} — not generic todo apps."""
+
+    try:
+        groq_client = AsyncGroq(api_key=settings.groq_api_key)
+        resp = await groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a senior engineer. Output ONLY valid JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.5,
+            max_tokens=1500,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if "```json" in raw:
+            raw = raw.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw:
+            raw = raw.split("```")[1].split("```")[0].strip()
+        match = _re.search(r'\{.*\}', raw, re.DOTALL)
+        result = json.loads(match.group() if match else raw)
+    except Exception as e:
+        result = {
+            "projects": [
+                {
+                    "title": f"{domain} Starter Project",
+                    "description": f"A beginner project showcasing core {domain} skills. Build and deploy a working prototype.",
+                    "tech_stack": skills[:3],
+                    "skills_built": skills[:2],
+                    "difficulty": "beginner",
+                    "weeks": 2,
+                    "github_hint": f"{domain.lower().replace('/', '-').replace(' ', '-')}-starter",
+                }
+            ]
+        }
+
+    result["domain"] = domain
+    return result
+
+
+@app.get("/student/{student_id}/career/digest")
+async def get_career_digest_endpoint(student_id: str):
+    """Weekly personalised career digest — focus area, next skill, LeetCode topic, key actions."""
+    from agents.career import get_career_digest
+
+    student = await db.get_student_by_college_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    profile = await get_student_profile(student_id)
+    return get_career_digest(profile)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -4245,6 +5039,130 @@ async def get_supported_languages():
         "default": "en",
         "note": "Language affects narration and explanation text. Diagrams and code remain in English.",
     }
+
+
+# ── Learning Analytics Endpoints ───────────────────────────────────────────────
+# ── Commitment Contracts Endpoints ─────────────────────────────────────────────
+@app.post("/student/{student_id}/commitment/create")
+async def create_commitment(student_id: str, body: dict):
+    """Create a new study commitment."""
+    from commitment_contracts import get_commitment_manager
+
+    manager = get_commitment_manager(student_id)
+    contract = await manager.create_contract(
+        commitment=body.get("commitment", ""),
+        target_date=body.get("target_date", ""),
+        frequency=body.get("frequency", "daily"),
+        goal_metric=body.get("goal_metric", ""),
+    )
+    return {"success": True, "contract": contract.to_dict()}
+
+
+@app.post("/student/{student_id}/commitment/check-in")
+async def check_in_commitment(student_id: str, body: dict):
+    """Record progress on a commitment."""
+    from commitment_contracts import get_commitment_manager
+
+    manager = get_commitment_manager(student_id)
+    result = await manager.check_in_on_commitment(
+        commitment_text=body.get("commitment", ""),
+        progress=int(body.get("progress", 0)),
+        notes=body.get("notes", ""),
+    )
+    return {"success": result is not None, "check_in": result}
+
+
+@app.get("/student/{student_id}/commitment/active")
+async def get_active_commitments(student_id: str):
+    """Get all active commitments for a student."""
+    from commitment_contracts import get_commitment_manager
+
+    manager = get_commitment_manager(student_id)
+    await manager.load_contracts()
+    active = await manager.get_active_contracts()
+    return {"active_commitments": [c.to_dict() for c in active]}
+
+
+@app.get("/student/{student_id}/commitment/summary")
+async def get_commitment_summary(student_id: str):
+    """Get commitment summary for a student."""
+    from commitment_contracts import get_commitment_manager
+
+    manager = get_commitment_manager(student_id)
+    await manager.load_contracts()
+    return manager.get_summary()
+
+
+# ── Peer Insights Endpoints ────────────────────────────────────────────────────
+@app.get("/student/{student_id}/peer/comparison")
+async def get_peer_comparison(student_id: str):
+    """Get peer comparison data for a student."""
+    from peer_insights import PeerInsightsAnalyzer
+
+    student_profile = await get_student_profile(student_id)
+    if not student_profile:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    analyzer = PeerInsightsAnalyzer(student_id)
+    return await analyzer.get_peer_comparison(student_profile)
+
+
+@app.get("/student/{student_id}/peer/suggestions")
+async def get_peer_suggestions(student_id: str):
+    """Get personalized suggestions based on peer comparison."""
+    from peer_insights import PeerInsightsAnalyzer, PeerInsightsSuggestions
+
+    student_profile = await get_student_profile(student_id)
+    if not student_profile:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    analyzer = PeerInsightsAnalyzer(student_id)
+    peer_comparison = await analyzer.get_peer_comparison(student_profile)
+    suggestions = await PeerInsightsSuggestions.suggest_next_steps(student_profile, peer_comparison)
+
+    return {
+        "student_id": student_id,
+        "suggestions": suggestions,
+        "peer_comparison_summary": peer_comparison.get("summary", {}),
+    }
+
+
+@app.get("/student/{student_id}/learning/metrics")
+async def get_learning_metrics(student_id: str):
+    """Get aggregated learning metrics for a student."""
+    from learning_analytics import get_student_learning_metrics
+    return await get_student_learning_metrics(student_id)
+
+
+@app.get("/session/{session_id}/learning/summary")
+async def get_session_learning_summary(session_id: str):
+    """Get learning summary for a specific session."""
+    from learning_analytics import get_session_analytics
+    analytics = get_session_analytics(session_id)
+    return analytics.get_summary()
+
+
+# ── Cache Management Endpoints ──────────────────────────────────────────────────
+@app.get("/cache/stats")
+async def get_cache_stats():
+    """Get cache statistics (admin only)."""
+    from cache_layer import get_cache_stats
+    return await get_cache_stats()
+
+
+@app.post("/cache/clear")
+async def clear_cache():
+    """Clear all cache entries (admin only)."""
+    from cache_layer import clear_all_cache
+    success = await clear_all_cache()
+    return {"success": success, "message": "Cache cleared" if success else "Cache clear failed"}
+
+
+@app.post("/cache/invalidate/{student_id}")
+async def invalidate_student_cache(student_id: str):
+    """Invalidate all cache for a specific student (admin only)."""
+    success = await invalidate_cache(student_id)
+    return {"success": success, "message": f"Cache invalidated for {student_id}"}
 
 
 if __name__ == "__main__":

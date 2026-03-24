@@ -1,0 +1,260 @@
+/* AI Pipeline Visualization - Like Perplexity Thinking Process */
+
+.pipeline {
+  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  border-radius: 12px;
+  border: 1px solid #e0e7ff;
+  margin: 16px 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.pipeline.expanded {
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.header:hover {
+  background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.toggle {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+/* Content */
+.content {
+  padding: 16px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+/* Stages */
+.stage {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-left: 4px solid #6366f1;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.4s ease;
+}
+
+.stage.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.stageHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+.label {
+  flex: 1;
+}
+
+.confidence {
+  background: #10b98133;
+  color: #059669;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Details */
+.details {
+  padding: 8px 0 0 26px;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.details p {
+  margin: 6px 0;
+}
+
+.details code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Monaco', monospace;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+/* Agent Badge */
+.agentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 6px 8px 6px 0;
+  text-transform: capitalize;
+}
+
+.supportingAgents {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+/* Context Grid */
+.contextGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.contextItem {
+  background: #f9fafb;
+  padding: 8px;
+  border-radius: 6px;
+  border-left: 3px solid #6366f1;
+}
+
+.contextLabel {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.contextValue {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  font-family: 'Monaco', monospace;
+}
+
+/* Agent Outputs */
+.agentOutputs {
+  margin-top: 8px;
+}
+
+.agentOutput {
+  background: #fafbff;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+}
+
+.agentName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: capitalize;
+}
+
+.agentThinking {
+  padding-left: 22px;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.agentThinking p {
+  margin: 4px 0;
+}
+
+/* Confidence Bar */
+.confidenceBar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border-left: 4px solid #0ea5e9;
+}
+
+.bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  grid-column: 1;
+}
+
+.fill {
+  height: 100%;
+  transition: width 0.4s ease;
+  border-radius: 3px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .contextGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    padding: 10px 12px;
+  }
+
+  .content {
+    padding: 12px;
+  }
+
+  .stage {
+    padding: 10px;
+  }
+
+  .details {
+    font-size: 12px;
+  }
+}

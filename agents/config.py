@@ -12,6 +12,7 @@ load_dotenv()
 class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
+    sarvam_api_key: str = ""
 
     # NVIDIA NIM (OpenAI-compatible free API — replaces Bedrock)
     nvidia_api_key: str = ""

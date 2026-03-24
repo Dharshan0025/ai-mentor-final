@@ -1,4 +1,4 @@
-import os, json, uuid, asyncio, logging
+import os, json, uuid, asyncio, logging, re
 from datetime import datetime
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, UploadFile, File, Response, Form
 from fastapi.responses import StreamingResponse
@@ -167,5 +167,149 @@ Rules:
 
     result["domain"] = domain
     return result
+
+
+@router.get("/student/{student_id}/career/roadmap-timeline")
+async def get_roadmap_timeline(student_id: str, domain: str = None):
+    """
+    Month-by-month career readiness timeline based on semester + CGPA.
+    Returns: { domain, semester, timeline: [{ month, label, milestone, action, type }] }
+    """
+    from agents.career import build_roadmap_timeline, compute_career_profile
+
+    student = await db.get_student_by_college_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    try:
+        profile = await db.get_student_full_profile(student_id) or {}
+    except Exception:
+        profile = {}
+
+    timeline = build_roadmap_timeline(profile, domain)
+    intel    = compute_career_profile(profile)
+
+    return {
+        "domain":   domain or intel["primary_domain"],
+        "semester": intel["semester"],
+        "cgpa":     intel["cgpa"],
+        "timeline": timeline,
+    }
+
+
+@router.post("/student/{student_id}/career/project-ideas")
+async def generate_project_ideas(student_id: str, body: dict = None):
+    """
+    Generate 3 personalised project ideas based on career domain + weak skills.
+    Body: { domain?: str }
+    Returns: { domain, projects: [{ title, description, tech_stack, skills_built, difficulty, weeks, github_hint }] }
+    """
+    import re as _re
+    from groq import AsyncGroq
+    from agents.career import compute_career_profile, DOMAIN_SKILLS
+
+    student = await db.get_student_by_college_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    body = body or {}
+    try:
+        profile = await db.get_student_full_profile(student_id) or {}
+    except Exception:
+        profile = {}
+
+    intel  = compute_career_profile(profile)
+    domain = (body.get("domain") or "").strip() or intel["primary_domain"]
+    skills = DOMAIN_SKILLS.get(domain, ["Python", "REST APIs"])
+    cgpa   = intel["cgpa"]
+    semester = intel["semester"]
+
+    prompt = f"""You are a senior software engineer mentoring an Indian CS/CSBS student.
+
+Student profile:
+- Target domain: {domain}
+- CGPA: {cgpa} | Semester: {semester}
+- Key skills to build: {', '.join(skills[:5])}
+
+Generate exactly 3 project ideas that:
+1. Are realistic to build in 2-4 weeks as a student
+2. Use the domain's key tech stack
+3. Are impressive enough for a resume/GitHub
+4. Progress in difficulty (beginner → intermediate → advanced)
+
+Return ONLY valid JSON:
+{{
+  "projects": [
+    {{
+      "title": "<specific project name>",
+      "description": "<2-sentence description of what it does and why it's impressive>",
+      "tech_stack": ["<tech1>", "<tech2>", "<tech3>"],
+      "skills_built": ["<skill1>", "<skill2>"],
+      "difficulty": "beginner|intermediate|advanced",
+      "weeks": <1-4>,
+      "github_hint": "<one-line repo name suggestion like: ml-resume-parser>"
+    }}
+  ]
+}}
+
+Make ideas SPECIFIC to {domain} — not generic todo apps."""
+
+    try:
+        groq_client = AsyncGroq(api_key=settings.groq_api_key)
+        resp = await groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a senior engineer. Output ONLY valid JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.5,
+            max_tokens=1500,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if "```json" in raw:
+            raw = raw.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw:
+            raw = raw.split("```")[1].split("```")[0].strip()
+        match = _re.search(r'\{.*\}', raw, re.DOTALL)
+        result = json.loads(match.group() if match else raw)
+    except Exception as e:
+        # Deterministic fallback
+        result = {
+            "projects": [
+                {
+                    "title": f"{domain} Starter Project",
+                    "description": f"A beginner project showcasing core {domain} skills. Build and deploy a working prototype.",
+                    "tech_stack": skills[:3],
+                    "skills_built": skills[:2],
+                    "difficulty": "beginner",
+                    "weeks": 2,
+                    "github_hint": f"{domain.lower().replace('/', '-').replace(' ', '-')}-starter",
+                }
+            ]
+        }
+
+    result["domain"] = domain
+    return result
+
+
+@router.get("/student/{student_id}/career/digest")
+async def get_career_digest_endpoint(student_id: str):
+    """
+    Weekly personalised career digest — focus area, next skill, LeetCode topic, key actions.
+    Returns: { week_of, domain, readiness_score, weekly_focus, focus_type,
+               leetcode_recommendation, this_week_actions, placement_weeks, top_cert }
+    """
+    from agents.career import get_career_digest
+
+    student = await db.get_student_by_college_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    try:
+        profile = await db.get_student_full_profile(student_id) or {}
+    except Exception:
+        profile = {}
+
+    return get_career_digest(profile)
 
 

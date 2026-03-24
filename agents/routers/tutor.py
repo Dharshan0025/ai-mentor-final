@@ -31,7 +31,7 @@ async def generate_quiz_endpoint(body: dict):
     from the student's ERP profile — prevents frontend from bypassing Bloom gating.
     Returns: { subject, topic, bloom_level, bloom_name, questions: [...], total }
     """
-    from agents.learning import generate_quiz
+    from learning import generate_quiz
     subject = body.get("subject", "Computer Science")
     topic = body.get("topic", "Introduction")
     student_id = body.get("student_id")
@@ -271,7 +271,7 @@ Do NOT add fill colors, style clauses, or any CSS inside the diagram."""
 
             # ── Parse structured response into step events ──────────────
             import re
-            from agents.teacher import parse_checkpoints_from_lesson
+            from teacher import parse_checkpoints_from_lesson
 
             step_pattern      = re.compile(r'\[STEP\s+(\d+):\s*([^\]]+)\]', re.IGNORECASE)
             narration_pattern = re.compile(r'\[NARRATION\]\s*\n(.*?)(?=\[DIAGRAM\]|\[CODE\]|\[STEP|\[CHECKPOINT\]|\Z)', re.DOTALL | re.IGNORECASE)
@@ -513,7 +513,7 @@ Answer their follow-up question in 2–4 short paragraphs. Be conversational and
 
         # ── Confusion detection (fire-and-forget) ────────────────────────
         if session_id and session_id in tutor_sessions:
-            from agents.teacher import detect_confusion
+            from teacher import detect_confusion
             session_turns = tutor_sessions[session_id].get("turns", [])
             if detect_confusion(session_turns, topic, threshold=3):
                 asyncio.create_task(
@@ -634,7 +634,7 @@ async def evaluate_checkpoint(student_id: str, body: dict):
             question_type: 'mcq'|'short', correct_index?: int, selected_index?: int }
     Returns: { correct, score, feedback, misconceptions, unlock_next }
     """
-    from agents.teacher import evaluate_checkpoint_answer
+    from teacher import evaluate_checkpoint_answer
 
     question      = (body.get("question") or "").strip()
     student_ans   = (body.get("student_answer") or "").strip()

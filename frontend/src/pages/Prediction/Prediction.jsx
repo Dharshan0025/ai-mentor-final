@@ -94,10 +94,10 @@ function renderInline(text) {
 /* ── Agentic Processing Engine Spinner ───────────────────────────────── */
 const PROCESSING_STEPS = [
     { id: 'fetch', label: 'Fetching ERP data', detail: 'Grades · attendance · bloom levels · syllabus coverage' },
-    { id: 'phase1', label: 'Phase 1 — Structured analysis', detail: 'Bedrock Claude computing risk scores, arrear probability' },
+    { id: 'phase1', label: 'Phase 1 — Structured analysis', detail: 'AI Mentor computing risk scores, arrear probability' },
     { id: 'deep', label: 'Diagnosing each subject', detail: 'Root causes · immediate actions · prognosis per subject' },
     { id: 'dna', label: 'Reading Learning DNA', detail: 'Peak hours · weak topics · preferred study style' },
-    { id: 'phase2', label: 'Phase 2 — Narrative generation', detail: 'Claude writing personalised 500-word tutor analysis' },
+    { id: 'phase2', label: 'Phase 2 — Narrative generation', detail: 'AI Mentor writing personalised tutor analysis' },
     { id: 'moves', label: 'Computing critical moves', detail: 'Top 3 high-impact interventions with timeline & CGPA impact' },
 ];
 
@@ -297,7 +297,7 @@ export default function Prediction() {
                     attendance_delta: sliders.attendance,
                     assignment_delta: sliders.assignments,
                     study_hours_delta: sliders.studyHours,
-                    explain: hasChanges, // request Bedrock explanation only when sliders are non-zero
+                    explain: hasChanges, // request AI Mentor explanation only when sliders are non-zero
                 });
                 setSimResult(res);
             } catch {
@@ -315,7 +315,7 @@ export default function Prediction() {
                 <div>
                     <span className="section-label">🔮 AI Predictions</span>
                     <h1 className={styles.title}>How you'll perform <span className="text-accent">next semester</span></h1>
-                    <p className={styles.sub}>2-phase Amazon Bedrock analysis — real ERP data · bloom levels · learning DNA</p>
+                    <p className={styles.sub}>2-phase AI Mentor analysis — real ERP data · bloom levels · learning DNA</p>
                 </div>
             </div>
             <ProcessingEngine />
@@ -363,9 +363,9 @@ export default function Prediction() {
                 <div>
                     <span className="section-label">🔮 AI Predictions</span>
                     <h1 className={styles.title}>How you'll perform <span className="text-accent">next semester</span></h1>
-                    <p className={styles.sub}>2-phase Amazon Bedrock analysis — real ERP data · bloom levels · learning DNA</p>
+                    <p className={styles.sub}>2-phase AI Mentor analysis — real ERP data · bloom levels · learning DNA</p>
                 </div>
-                <button className={styles.regenBtn} onClick={() => fetchPrediction(true)} title="Re-run Bedrock analysis">
+                <button className={styles.regenBtn} onClick={() => fetchPrediction(true)} title="Refresh AI analysis">
                     <RefreshCw size={14} /> Refresh Analysis
                 </button>
             </div>
@@ -468,7 +468,7 @@ export default function Prediction() {
                 </div>
 
                 <div className={`card ${styles.verdictCard}`}>
-                    <h2 className={styles.cardTitle}>Bedrock Verdict</h2>
+                    <h2 className={styles.cardTitle}>AI Diagnostic Verdict</h2>
                     <div className={styles.verdictRows}>
                         {[
                             { label: 'Pessimistic', val: verdict.pessimistic, color: 'var(--risk)' },
@@ -498,9 +498,9 @@ export default function Prediction() {
                 <div className={styles.agentHeader}>
                     <div className={styles.agentTitle}>
                         <Brain size={18} className={styles.agentIcon} />
-                        <span>Bedrock Analysis</span>
+                        <span>AI Mentor Analysis</span>
                         <span className={styles.agentProviderTag}>
-                            {pred?.providers?.phase2 === 'bedrock' ? '🔶 Claude 3 Haiku' : '⚡ Groq Fallback'}
+                            {pred?.providers?.phase2 === 'fallback' ? '⚡ Basic Mode' : '🔶 Advanced AI'}
                         </span>
                     </div>
                     <div className={styles.agentMeta}>Updated just now · {subjects.length} subjects analyzed</div>
@@ -593,8 +593,8 @@ export default function Prediction() {
                     <span className="pill pill-safe">Reality Check</span>
                 </div>
                 <div className={styles.macroBody}>
+                    <p className={styles.simDesc}>Drag the slider to set your macro stretch goal. See your probability of hitting it based on current telemetry.</p>
                     <div className={styles.macroSliderArea}>
-                        <p className={styles.simDesc}>Drag the slider to set your macro stretch goal. See your probability of hitting it based on current telemetry.</p>
                         <div className={styles.macroSliderTrack}>
                             <div className={styles.macroSliderFill} style={{ width: `${((targetCgpa - 5) / 5) * 100}%` }} />
                             <input 
@@ -633,7 +633,7 @@ export default function Prediction() {
                     <h2 className={styles.cardTitle}><Zap size={16} style={{ color: 'var(--accent)' }} /> What if…?</h2>
                     <span className="pill pill-accent">Scenario Simulator</span>
                 </div>
-                <p className={styles.simDesc}>Drag the sliders — the AI runs live CGPA predictions. Move any slider to get a Bedrock explanation.</p>
+                <p className={styles.simDesc}>Drag the sliders — the AI runs live CGPA predictions. Move any slider to get an AI Mentor explanation.</p>
 
                 <div className={styles.sliders}>
                     {[
@@ -671,7 +671,7 @@ export default function Prediction() {
                             </div>
                             <div className={styles.simRange}>Confidence range: <strong>{simResult.simulated_range?.[0]} – {simResult.simulated_range?.[1]}</strong></div>
 
-                            {/* Bedrock sim explanation */}
+                            {/* AI sim explanation */}
                             {simResult.explanation && (
                                 <div className={styles.simExplanation}>
                                     <Brain size={13} style={{ color: '#6366F1' }} />

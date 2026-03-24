@@ -4,7 +4,7 @@ LLM-powered. Groq generates a structured JSON weekly plan from real ERP data.
 Inputs: subjects (bloom, grade, attendance), syllabus coverage, overdue assignments, Learning DNA.
 Output: structured 7-day plan with per-slot topic, bloom badge, duration, pomodoro count, study tip.
 """
-from langchain_groq import ChatGroq
+from utils.llm import get_llm
 from langchain_core.messages import HumanMessage, SystemMessage
 from config import settings
 import logging
@@ -205,12 +205,7 @@ async def generate_ai_schedule(
     peak_hour = learning_dna.get("peak_hour") or 8
     context = _build_llm_context(profile, learning_dna, peak_hour)
 
-    llm = ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0.4,
-        max_tokens=3000,
-    )
+    llm, provider = get_llm(temperature=0.4, max_tokens=6000)
 
     prompt = SCHEDULE_JSON_PROMPT.format(context=context, peak_hour=peak_hour)
 
@@ -243,11 +238,11 @@ async def generate_ai_schedule(
                 slot.setdefault("subject_code", "")
 
         logger.info("✅ LLM schedule generated successfully")
-        return week
+        return week, provider
 
     except Exception as e:
         logger.warning(f"LLM schedule generation failed ({e}), using deterministic fallback")
-        return _deterministic_fallback(profile, peak_hour)
+        return _deterministic_fallback(profile, peak_hour), "deterministic"
 
 
 # ── Per-subject tips (LLM) ────────────────────────────────────────────────────
@@ -260,12 +255,7 @@ async def generate_subject_tips(
     Generate one specific study tip per at-risk/watch subject using LLM.
     Returns {subject_code: tip_text}
     """
-    llm = ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0.5,
-        max_tokens=600,
-    )
+    llm, provider = get_llm(temperature=0.5, max_tokens=600)
     tips: dict[str, str] = {}
     priority = [s for s in subjects if s.get("status") in ("risk", "watch")]
     weak_raw = learning_dna.get("weak_topics") or []
@@ -367,11 +357,12 @@ async def schedule_node(state: dict) -> dict:
             logger.warning(f"Learning DNA load skipped in schedule_node: {e}")
 
     try:
-        week = await generate_ai_schedule(profile, learning_dna)
+        week, provider = await generate_ai_schedule(profile, learning_dna)
     except Exception as e:
         logger.error(f"schedule_node generate_ai_schedule failed ({e}), using fallback")
         peak = learning_dna.get("peak_hour") or 8
         week = _deterministic_fallback(profile, peak)
+        provider = "deterministic"
 
     rationale = build_schedule_rationale(profile, learning_dna)
     breakdown = build_subject_breakdown(week)
@@ -392,7 +383,7 @@ async def schedule_node(state: dict) -> dict:
         **state,
         "schedule_output": response_text,
         "primary_agent": "schedule",
-        "model_used": settings.groq_model,
+        "model_used": provider,
         "citations": [
             {"label": "7-day personalized study plan", "source": "Schedule Agent"},
             {"label": f"Exam in {profile.get('examDays', '?')} days", "source": "ERP Calendar"},

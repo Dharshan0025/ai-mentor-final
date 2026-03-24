@@ -105,9 +105,13 @@ export function isAuthenticated() {
  * @param {string} opts.lang
  * @param {Array}  opts.history
  */
-export async function sendChatMessage({ message, sessionId, lang = 'en', history = [] }) {
-    const { data } = await api.post('/chat', { message, sessionId, lang, history });
-    return data; // { agent, content, citations, tokens_used, model_used }
+export async function sendChatMessage({ message, sessionId, lang = 'en', history = [], show_pipeline = false }) {
+    // Chat requests can take longer due to multi-agent processing
+    const { data } = await api.post('/chat',
+        { message, sessionId, lang, history, show_pipeline },
+        { timeout: 120_000 } // 2 minutes for chat (agents need time to think)
+    );
+    return data; // { agent, content, citations, tokens_used, model_used, pipeline }
 }
 
 /**
@@ -228,8 +232,6 @@ export async function getMyAlerts() {
 }
 
 export async function markAlertRead(alertId) {
-    const stored = getStoredStudent();
-    const student_id = stored?.id || stored?.college_id || '';
     const { data } = await api.post(`/student/me/alerts/${alertId}/read`);
     return data;
 }
@@ -257,10 +259,11 @@ export async function getStudentProfile({ forceRefresh = false } = {}) {
 }
 
 // ── AI Visual Tutor ──────────────────────────────────────────────────────────
-export function startTutorLesson({ subjectCode, topic, mode = 'visual', sessionId = null }) {
+export function startTutorLesson({ subjectCode, topic, mode = 'visual', sessionId = null, language = 'en', lessonPlanSteps = null }) {
     const token = localStorage.getItem('ai_mentor_token');
-    const body = { subject_code: subjectCode, topic, mode };
+    const body = { subject_code: subjectCode, topic, mode, language };
     if (sessionId) body.session_id = sessionId;
+    if (lessonPlanSteps?.length) body.lesson_plan_steps = lessonPlanSteps;
     return fetch(`${BASE}/student/me/tutor/teach`, {
         method: 'POST',
         headers: {
@@ -271,6 +274,55 @@ export function startTutorLesson({ subjectCode, topic, mode = 'visual', sessionI
     });
 }
 
+/**
+ * Send recorded audio doubt to backend for transcription + clarification.
+ * @param {Blob} audioBlob - Recorded audio from MediaRecorder
+ * @param {object} params  - { subjectCode, topic, language, sessionId, lessonContext }
+ * @returns {Promise<{transcript, clarification, audio_base64, language}>}
+ */
+export async function clarifyDoubt(audioBlob, { subjectCode = '', topic = '', language = 'en', sessionId = '', lessonContext = '' } = {}) {
+    const token = localStorage.getItem('ai_mentor_token');
+    const form = new FormData();
+    form.append('audio', audioBlob, 'doubt.webm');
+    form.append('subject_code', subjectCode);
+    form.append('topic', topic);
+    form.append('language', language);
+    form.append('session_id', sessionId || '');
+    form.append('lesson_context', lessonContext || '');
+
+    const resp = await fetch(`${BASE}/student/me/tutor/clarify`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+    });
+    if (!resp.ok) throw new Error(`Clarify failed: ${resp.status}`);
+    return resp.json();
+}
+
+/**
+ * Sarvam TTS — used for ALL languages (en, ta, thanglish).
+ * Returns audio Blob on success, or null (caller falls back to browser TTS).
+ */
+export async function getTutorTTS(text, language = 'en') {
+    if (!text?.trim()) return null;
+    const token = localStorage.getItem('ai_mentor_token');
+    try {
+        const resp = await fetch(`${BASE}/student/me/tutor/tts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ text, language }),
+        });
+        if (resp.status === 204) return null;
+        if (!resp.ok) return null;
+        return resp.blob();
+    } catch {
+        return null;
+    }
+}
+
 /** Tutor options from DB only (subjects + topics per subject). No hardcoded data. */
 export async function getTutorOptions({ forceRefresh = false } = {}) {
     if (!forceRefresh) { const c = cacheGet('tutorOptions'); if (c) return c; }
@@ -279,8 +331,8 @@ export async function getTutorOptions({ forceRefresh = false } = {}) {
     return data; // { subjects: [...], topics_by_subject: { "CODE": ["topic1", ...] } }
 }
 
-export async function askTutorQuestion({ subjectCode, topic, question, history = [], sessionId = null }) {
-    const body = { subject_code: subjectCode, topic, question, history };
+export async function askTutorQuestion({ subjectCode, topic, question, history = [], sessionId = null, language = 'en' }) {
+    const body = { subject_code: subjectCode, topic, question, history, language };
     if (sessionId) body.session_id = sessionId;
     const { data } = await api.post('/student/me/tutor/ask', body);
     return data; // { answer, mermaid? }
@@ -615,6 +667,25 @@ export async function getRoadmap({ forceRefresh = false } = {}) {
     if (!forceRefresh) { const c = cacheGet('roadmap'); if (c) return c; }
     const { data } = await api.get(mePath('/roadmap'));
     cacheSet('roadmap', data);
+    return data;
+}
+
+/** Month-by-month career roadmap timeline */
+export async function getCareerRoadmapTimeline(domain = null) {
+    const params = domain ? `?domain=${encodeURIComponent(domain)}` : '';
+    const { data } = await api.get(`${mePath('/career/roadmap-timeline')}${params}`);
+    return data;
+}
+
+/** Generate 3 personalised project ideas for the student's career domain */
+export async function getProjectIdeas(domain = null) {
+    const { data } = await api.post(mePath('/career/project-ideas'), domain ? { domain } : {});
+    return data;
+}
+
+/** Weekly career digest — focus, skill, LeetCode, actions */
+export async function getCareerDigest() {
+    const { data } = await api.get(mePath('/career/digest'));
     return data;
 }
 

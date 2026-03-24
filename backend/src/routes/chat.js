@@ -30,7 +30,7 @@ router.post(
             return res.status(400).json({ error: 'Invalid request', details: errors.array() });
         }
 
-        const { message, sessionId, lang = 'en', history = [] } = req.body;
+        const { message, sessionId, lang = 'en', history = [], show_pipeline = true } = req.body;
         const studentId = req.user.studentId;
 
         const payload = {
@@ -39,11 +39,12 @@ router.post(
             student_id: studentId,
             lang,
             history,
+            show_pipeline,
         };
 
         try {
             const agentResponse = await axios.post(`${AGENT_SERVICE}/chat`, payload, {
-                timeout: 30_000,        // 30s — LLM can be slow
+                timeout: 120_000,        // 2 minutes — multi-agent processing can be slow
                 headers: { 'Content-Type': 'application/json' },
             });
 

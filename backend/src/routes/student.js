@@ -274,6 +274,42 @@ router.post('/me/tutor/voice/transcribe', requireAuth, async (req, res, next) =>
     }
 });
 
+// POST /api/student/me/tutor/clarify  — multipart: audio + form fields
+// Transcribes student's spoken doubt and returns clarification + optional TTS audio
+router.post('/me/tutor/clarify', requireAuth, async (req, res, next) => {
+    try {
+        const response = await axios.post(
+            `${AGENT_SERVICE}/student/${getAuthedStudentId(req)}/tutor/clarify`,
+            req,
+            {
+                headers: { ...req.headers, host: undefined },
+                timeout: 60_000,
+            }
+        );
+        res.json(response.data);
+    } catch (err) {
+        handleAgentError(err, next, res);
+    }
+});
+
+// POST /api/student/me/tutor/tts  — Sarvam TTS for Tamil/Thanglish narrations
+router.post('/me/tutor/tts', requireAuth, async (req, res, next) => {
+    try {
+        const response = await axios.post(
+            `${AGENT_SERVICE}/student/${getAuthedStudentId(req)}/tutor/tts`,
+            req.body,
+            { timeout: 30_000, responseType: 'arraybuffer' }
+        );
+        if (response.status === 204) {
+            return res.status(204).end();
+        }
+        res.setHeader('Content-Type', response.headers['content-type'] || 'audio/wav');
+        res.send(Buffer.from(response.data));
+    } catch (err) {
+        handleAgentError(err, next, res);
+    }
+});
+
 // POST /api/student/me/tutor/evaluate-adaptive
 router.post('/me/tutor/evaluate-adaptive', requireAuth, (req, res, next) => {
     proxyPost(`/student/${getAuthedStudentId(req)}/tutor/evaluate-adaptive`, req.body, res, next, {
@@ -494,6 +530,24 @@ router.post('/me/career/interview-prep', requireAuth, (req, res, next) => {
     proxyPost(`/student/${getAuthedStudentId(req)}/career/interview-prep`, req.body, res, next, {
         timeout: 60_000,
     });
+});
+
+// GET /api/student/me/career/roadmap-timeline
+router.get('/me/career/roadmap-timeline', requireAuth, (req, res, next) => {
+    const qs = req.query.domain ? `?domain=${encodeURIComponent(req.query.domain)}` : '';
+    proxyGet(`/student/${getAuthedStudentId(req)}/career/roadmap-timeline${qs}`, res, next);
+});
+
+// POST /api/student/me/career/project-ideas
+router.post('/me/career/project-ideas', requireAuth, (req, res, next) => {
+    proxyPost(`/student/${getAuthedStudentId(req)}/career/project-ideas`, req.body, res, next, {
+        timeout: 30_000,
+    });
+});
+
+// GET /api/student/me/career/digest
+router.get('/me/career/digest', requireAuth, (req, res, next) => {
+    proxyGet(`/student/${getAuthedStudentId(req)}/career/digest`, res, next);
 });
 
 // POST /api/student/me/problems/generate

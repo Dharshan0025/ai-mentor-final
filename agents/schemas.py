@@ -39,6 +39,7 @@ class ChatRequest(BaseModel):
     lang: Language = Language.EN
     history: list[ChatMessage] = Field(default_factory=list, max_length=20)
     upload_url: Optional[str] = None       # PDF / image URL if uploaded
+    show_pipeline: bool = True             # Show AI thinking process like Perplexity
 
 
 class Citation(BaseModel):
@@ -53,6 +54,45 @@ class AgentResponseChunk(BaseModel):
     is_final: bool = False
 
 
+class AIPipelineStage(BaseModel):
+    """Shows AI thinking process at each stage"""
+    class IntentParsing(BaseModel):
+        user_message: str
+        intent: str
+        confidence: float = 0.0
+        reasoning: Optional[str] = None
+
+    class AgentSelection(BaseModel):
+        primary: str
+        supporting: list[str] = []
+        reasoning: Optional[str] = None
+
+    class ContextData(BaseModel):
+        profile: Optional[dict] = None
+        sentiment: Optional[float] = None
+        bloom: Optional[int] = None
+        learning_style: Optional[str] = None
+        peak_hour: Optional[str] = None
+
+    class AgentReasoning(BaseModel):
+        reasoning: Optional[str] = None
+        key_insight: Optional[str] = None
+        score: float = 0.0
+
+    class SynthesisInfo(BaseModel):
+        response_mode: Optional[str] = None
+        tone: Optional[str] = None
+        personalization: list[str] = []
+        ui_widgets: list[str] = []
+
+    intent: Optional[IntentParsing] = None
+    agent_selection: Optional[AgentSelection] = None
+    context: Optional[ContextData] = None
+    agent_outputs: Optional[dict[str, AgentReasoning]] = None
+    synthesis: Optional[SynthesisInfo] = None
+    overall_confidence: float = 0.0
+
+
 class ChatResponse(BaseModel):
     session_id: str
     agent: AgentId
@@ -63,6 +103,7 @@ class ChatResponse(BaseModel):
     ui_card: Optional[Any] = None           # generative UI widget dict or None
     suggested_actions: list[Any] = []       # [{label, prompt, icon}]
     xp_awarded: int = 0                     # XP earned this turn
+    pipeline: Optional[AIPipelineStage] = None  # AI thinking process visualization
 
 
 # ── Student ────────────────────────────────────────────────────────────────────

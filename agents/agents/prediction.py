@@ -10,6 +10,7 @@ import logging
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from langchain_core.messages import HumanMessage, SystemMessage
+from utils.llm import get_llm
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -81,29 +82,6 @@ Do NOT use clichés ("hard work pays off"). Be specific. Reference real grades, 
 """
 
 
-def _get_llm(temperature: float = 0.2, max_tokens: int = 1500):
-    """Return NVIDIA NIM LLM first, fall back to Groq."""
-    if settings.nvidia_api_key:
-        try:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
-                api_key=settings.nvidia_api_key,
-                base_url=settings.nvidia_base_url,
-                model=settings.nvidia_model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            ), "nvidia"
-        except Exception as e:
-            logger.warning(f"NVIDIA NIM init failed ({e}), using Groq")
-    from langchain_groq import ChatGroq
-    return ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    ), "groq"
-
-
 def _build_context(profile: dict, learning_dna: dict | None = None) -> str:
     subjects = profile.get("subjects", [])
     cgpa_history = profile.get("cgpaHistory", [])
@@ -159,7 +137,7 @@ async def run_llm_analysis(profile: dict, learning_dna: dict | None = None) -> d
     context = _build_context(profile, learning_dna)
 
     # Phase 1 — Structured JSON
-    llm1, provider1 = _get_llm(temperature=0.1, max_tokens=1800)
+    llm1, provider1 = get_llm(temperature=0.1, max_tokens=1800)
     phase1_result = {}
     try:
         resp1 = await llm1.ainvoke([
@@ -179,7 +157,7 @@ async def run_llm_analysis(profile: dict, learning_dna: dict | None = None) -> d
         phase1_result = _fallback_phase1(profile, subjects)
 
     # Phase 2 — markdown narrative
-    llm2, provider2 = _get_llm(temperature=0.35, max_tokens=900)
+    llm2, provider2 = get_llm(temperature=0.35, max_tokens=900)
     narrative = ""
     try:
         phase1_summary = json.dumps({
@@ -212,7 +190,7 @@ async def run_sim_explanation(
     simulated_cgpa: float,
 ) -> str:
     """Generate a 3-sentence explanation (NVIDIA NIM / Groq) for why the simulation changed the CGPA."""
-    llm, _ = _get_llm(temperature=0.3, max_tokens=300)
+    llm, _ = get_llm(temperature=0.3, max_tokens=300)
     delta = round(simulated_cgpa - baseline_cgpa, 3)
     prompt = (
         f"Student CGPA: {baseline_cgpa} → {simulated_cgpa} (delta {'+' if delta >= 0 else ''}{delta}).\n"
@@ -391,8 +369,8 @@ def build_prediction_fallback(profile: dict) -> dict:
 
 
 # ── Backward-compatible aliases ───────────────────────────────────────────────
-run_bedrock_analysis = run_llm_analysis
-run_bedrock_sim_explanation = run_sim_explanation
+run_deep_analysis = run_llm_analysis
+run_sim_explanation_llm = run_sim_explanation
 
 
 # ── LangGraph-compatible node ─────────────────────────────────────────────────

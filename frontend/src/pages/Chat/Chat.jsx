@@ -8,6 +8,7 @@ import VoiceMentor from '../../components/VoiceMentor/VoiceMentor';
 import ChatWidgets from '../../components/ChatWidgets/ChatWidgets';
 import SuggestedActions from '../../components/SuggestedActions/SuggestedActions';
 import XPConfetti from '../../components/XPConfetti/XPConfetti';
+import AIPipeline from '../../components/AIPipeline/AIPipeline';
 const ConceptBoard = lazy(() => import('../../components/ConceptBoard/ConceptBoard'));
 
 // ── Agent metadata ─────────────────────────────────────────────────────────────
@@ -532,6 +533,8 @@ export default function Chat() {
     const [student, setStudent] = useState(null);
     const [lastResponse, setLastResponse] = useState('');
     const [pendingXP, setPendingXP] = useState(0);
+    const [pipelineData, setPipelineData] = useState(null);
+    const [showPipeline, setShowPipeline] = useState(false);
     const bottomRef = useRef(null);
     const prefillHandledRef = useRef(false);
 
@@ -544,26 +547,12 @@ export default function Chat() {
             .then(data => setBriefing(data))
             .catch(() => { }); // briefing is non-critical
 
-        // Load chat history
+        // Load chat sessions for sidebar (but don't auto-load messages into current chat)
+        // Each chat session starts fresh - history is stored but not displayed
         getChatSessions()
             .then(sessions => {
-                if (sessions?.length > 0) {
-                    const latestSession = sessions[0];
-                    setSessionId(latestSession.id);
-                    return getChatHistory(latestSession.id);
-                }
-                return null;
-            })
-            .then(hist => {
-                if (hist?.length > 0) {
-                    const loadedMessages = hist.map(m => ({
-                        role: m.role === 'user' ? 'user' : 'agent',
-                        agent: m.agent || 'academic',
-                        text: m.content || '',
-                        citations: m.citations ? (typeof m.citations === 'string' ? JSON.parse(m.citations) : m.citations) : []
-                    }));
-                    setMessages(loadedMessages);
-                }
+                // Store sessions in state if you want to show them in sidebar
+                // For now, just create a new session each time
             })
             .catch(() => {});
     }, []);
@@ -584,10 +573,11 @@ export default function Chat() {
         const history = messages.slice(-10).map(m => ({
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.text,
+            agent: m.role === 'user' ? null : (m.agent || 'academic'),
         }));
 
         try {
-            const response = await sendChatMessage({ message: msg, sessionId, lang: 'en', history });
+            const response = await sendChatMessage({ message: msg, sessionId, lang: 'en', history, show_pipeline: true });
             setLoadingAgent(response.agent || 'academic');
             setMessages(m => [...m, {
                 role: 'agent',
@@ -598,11 +588,21 @@ export default function Chat() {
                 suggestedActions: response.suggested_actions || [],
             }]);
             setLastResponse(response.content || '');
+            if (response.pipeline) {
+                setPipelineData(response.pipeline);
+            }
             if (response.xp_awarded > 0) setPendingXP(response.xp_awarded);
         } catch (err) {
-            const errText = err.response?.status === 503
-                ? '⚠️ The AI service is temporarily offline. Please try again in a moment.'
-                : '⚠️ Something went wrong. Please try again.';
+            let errText = '⚠️ Something went wrong. Please try again.';
+
+            if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+                errText = '⏱️ The AI is taking longer than usual. The backend is still processing, but the request timed out. Please try a simpler question or wait a moment.';
+            } else if (err.response?.status === 503) {
+                errText = '⚠️ The AI service is temporarily offline. Please try again in a moment.';
+            } else if (err.response?.data?.detail) {
+                errText = `⚠️ ${err.response.data.detail}`;
+            }
+
             setMessages(m => [...m, { role: 'agent', agent: 'academic', text: errText, citations: [] }]);
         } finally {
             setLoading(false);
@@ -680,6 +680,16 @@ export default function Chat() {
 
                     <div ref={bottomRef} />
                 </div>
+
+                {/* AI Pipeline Visualization */}
+                {pipelineData && (
+                    <AIPipeline
+                        pipelineData={pipelineData}
+                        isLoading={loading}
+                        expanded={showPipeline}
+                        onToggle={() => setShowPipeline(!showPipeline)}
+                    />
+                )}
 
                 {/* Input area */}
                 <div className={styles.inputArea}>

@@ -142,19 +142,10 @@
     border-color: rgba(239, 68, 68, 0.2);
 }
 
-/* ── Grid Layout ───────────────────────────────────────────────────────── */
+/* ── Masonry Grid — 2 columns, cards fill space naturally ───────────────── */
 .grid {
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 20px;
-    align-items: start;
-}
-
-.colLeft,
-.colRight {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    columns: 2;
+    column-gap: 20px;
 }
 
 /* ── Card ──────────────────────────────────────────────────────────────── */
@@ -167,6 +158,12 @@
     overflow: hidden;
     transition: box-shadow 0.2s ease, transform 0.2s ease;
     animation: fadeUp 0.5s ease both;
+    /* Masonry: prevent cards from splitting across columns */
+    break-inside: avoid;
+    display: inline-block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
 }
 
 .card:hover {
@@ -613,14 +610,331 @@
     margin-left: auto;
 }
 
+/* ── Weekly Digest ──────────────────────────────────────────────────────── */
+.digestCard {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.digestGlow {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    opacity: 0.08;
+    filter: blur(30px);
+    pointer-events: none;
+}
+
+.digestFocus {
+    border-left: 3px solid;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    font-size: 0.85rem;
+    color: var(--text-1, #F5F0E8);
+    line-height: 1.5;
+    margin-bottom: 16px;
+    border-radius: 0 4px 4px 0;
+}
+
+.digestGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.digestItem {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.digestLabel {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.digestValue {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-1, #F5F0E8);
+    line-height: 1.2;
+}
+
+.digestSub {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+}
+
+.digestActions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.digestAction {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.4;
+}
+
+/* ── Skill Gap Radar ─────────────────────────────────────────────────────── */
+.radarWrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.radarSvg {
+    width: 100%;
+    max-width: 220px;
+}
+
+.radarLegend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.45);
+}
+
+.radarDot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.gapActions {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gapAction {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.4;
+}
+
+.gapActionDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    margin-top: 5px;
+}
+
+/* ── Roadmap Timeline ────────────────────────────────────────────────────── */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.timelineItem {
+    display: flex;
+    gap: 14px;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.timelineVisible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.timelineLine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 16px;
+}
+
+.timelineDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+    border: 2px solid #0d0d0d;
+}
+
+.timelineConnector {
+    width: 2px;
+    flex: 1;
+    min-height: 16px;
+    background: rgba(255,255,255,0.08);
+    margin: 4px 0;
+}
+
+.timelineContent {
+    padding-bottom: 16px;
+    flex: 1;
+    min-width: 0;
+}
+
+.timelineLabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2px;
+}
+
+.timelineMilestone {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-1, #F5F0E8);
+    margin-bottom: 2px;
+}
+
+.timelineAction {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.4;
+}
+
+/* ── Project Ideas ───────────────────────────────────────────────────────── */
+.refreshBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.55);
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.refreshBtn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+}
+
+.refreshBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.spinning {
+    animation: spin 0.8s linear infinite;
+}
+
+.projectList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.projectCard {
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    transition: border-color 0.15s ease;
+}
+
+.projectCard:hover {
+    border-color: rgba(255,255,255,0.14);
+}
+
+.projectHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.projectTitle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-1, #F5F0E8);
+}
+
+.diffBadge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border: 1px solid;
+    text-transform: capitalize;
+    flex-shrink: 0;
+}
+
+.weeksBadge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    flex-shrink: 0;
+}
+
+.projectDesc {
+    font-size: 0.76rem;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
+    margin: 0 0 8px;
+}
+
+.projectTech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.techChip {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.55);
+    font-family: 'Courier New', monospace;
+}
+
+.githubHint {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.25);
+    font-family: 'Courier New', monospace;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .grid {
-        grid-template-columns: 1fr;
-    }
-
-    .colRight {
-        order: -1;
+        columns: 1;
     }
 
     .header {
@@ -630,5 +944,9 @@
 
     .skillGrid {
         grid-template-columns: 1fr;
+    }
+
+    .digestGrid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

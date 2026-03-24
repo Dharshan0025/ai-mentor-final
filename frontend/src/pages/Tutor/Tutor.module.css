@@ -85,6 +85,44 @@
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
+    transition: width 0.22s ease;
+    position: relative;
+}
+
+.panelCollapsed {
+    width: 32px;
+    overflow: hidden;
+}
+
+.panelCollapsed > *:not(.panelToggle) {
+    display: none;
+}
+
+.panelToggle {
+    position: absolute;
+    top: 50%;
+    right: -12px;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+}
+
+.panelToggle:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
 }
 
 .panelHeader {
@@ -1780,4 +1818,164 @@
     border-color: rgba(239,68,68,0.7);
     color: #fca5a5;
     animation: pulseDot 1.4s ease-in-out infinite;
+}
+
+/* ── Step Navigation ─────────────────────────────────────────── */
+.stepNavRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+}
+
+.stepNavInfo {
+    font-size: 0.78rem;
+    color: var(--text-3);
+}
+
+.stepNavCheckpoint {
+    color: var(--watch, #F59E0B);
+    font-weight: 600;
+}
+
+.stepNavBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 18px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.stepNavBtn:hover:not(:disabled) { opacity: 0.85; }
+.stepNavBtn:disabled { opacity: 0.35; cursor: default; }
+
+/* ── Lesson loading banner ───────────────────────────────────── */
+.lessonLoadingBanner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-2);
+}
+
+/* ── Hold-to-Ask Voice Doubt ─────────────────────────────────── */
+.holdAskRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface-2, #F4F1EC);
+    border-bottom: 1px solid var(--border);
+}
+
+.holdAskBtn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.holdAskBtn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.holdAskBtnActive {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+    color: #ef4444;
+    animation: pulseDot 0.9s ease-in-out infinite;
+}
+
+.holdAskBtnLoading {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.holdAskHint {
+    font-size: 0.72rem;
+    color: var(--text-3);
+}
+
+/* ── Clarification Panel ─────────────────────────────────────── */
+.clarifyPanel {
+    margin: 0 16px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--accent);
+    background: linear-gradient(135deg, rgba(255,122,0,0.06), rgba(255,122,0,0.02));
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: diagramCardIn 0.25s ease both;
+}
+
+.clarifyQuestion {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: var(--text-3);
+}
+
+.clarifyQuestion svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #ef4444;
+}
+
+.clarifyAnswer {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.83rem;
+    color: var(--text-1);
+    line-height: 1.55;
+}
+
+.clarifyAnswer svg {
+    flex-shrink: 0;
+    margin-top: 3px;
+    color: var(--accent);
+}
+
+.clarifyDismiss {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.clarifyDismiss:hover {
+    opacity: 0.88;
 }

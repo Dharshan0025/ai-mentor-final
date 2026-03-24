@@ -1297,35 +1297,61 @@ class Database:
                     subjects = [{"code": r["code"], "name": r["name"], "bloomLevel": 2} for r in rows]
 
             topics_by_subject = {}
-            for subj in subjects:
-                code = subj.get("code") or subj.get("subject_code")
-                if not code:
-                    continue
-                syllabus = await self.get_subject_syllabus(subject_code=code)
-                topic_list = []
-                for row in syllabus:
-                    # 1. Add Unit Title as a primary topic
-                    unit_title = (row.get("unit_title") or "").strip()
-                    if unit_title and unit_title not in topic_list:
-                        topic_list.append(unit_title)
-                    
-                    # 2. Add granular topics if present
-                    raw = row.get("topics")
-                    if raw:
-                        # Handle both ARRAY (list) and string formats
-                        parts = []
-                        if isinstance(raw, list):
-                            parts = raw
-                        elif isinstance(raw, str):
-                            parts = raw.replace("\n", ",").split(",")
-                        
-                        for p in parts:
-                            if isinstance(p, str):
-                                t = p.strip()
-                                if t and t not in topic_list:
-                                    topic_list.append(t)
-                                    
-                topics_by_subject[code] = topic_list
+
+            # ── FIX: Batch-fetch all syllabuses in ONE query instead of N queries ──
+            if subjects:
+                # Extract all subject codes
+                subject_codes = [
+                    subj.get("code") or subj.get("subject_code")
+                    for subj in subjects
+                    if subj.get("code") or subj.get("subject_code")
+                ]
+
+                if subject_codes:
+                    try:
+                        # SINGLE BATCH QUERY instead of N sequential queries
+                        rows = await self._fetch_from_pool(
+                            """
+                            SELECT subject_code, unit_title, topics
+                            FROM subject_syllabus
+                            WHERE subject_code = ANY($1::text[])
+                            ORDER BY subject_code, unit_number
+                            """,
+                            subject_codes,
+                        )
+
+                        # Build topics_by_subject from batch results
+                        for row in rows:
+                            code = row.get("subject_code")
+                            if not code:
+                                continue
+
+                            if code not in topics_by_subject:
+                                topics_by_subject[code] = []
+
+                            # Add unit title
+                            unit_title = (row.get("unit_title") or "").strip()
+                            if unit_title and unit_title not in topics_by_subject[code]:
+                                topics_by_subject[code].append(unit_title)
+
+                            # Add granular topics
+                            raw = row.get("topics")
+                            if raw:
+                                parts = []
+                                if isinstance(raw, list):
+                                    parts = raw
+                                elif isinstance(raw, str):
+                                    parts = raw.replace("\n", ",").split(",")
+
+                                for p in parts:
+                                    if isinstance(p, str):
+                                        t = p.strip()
+                                        if t and t not in topics_by_subject[code]:
+                                            topics_by_subject[code].append(t)
+                    except Exception as e:
+                        logger.warning(f"Batch syllabus fetch failed: {e}")
+                        # Graceful fallback: return subjects with empty topics
+                        pass
 
             return {
                 "subjects": subjects,

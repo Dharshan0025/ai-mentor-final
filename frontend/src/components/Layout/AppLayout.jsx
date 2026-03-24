@@ -3,7 +3,8 @@ import { Outlet, NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, MessageCircle, TrendingUp, BookOpen,
     Calendar, Briefcase, User, LogOut, Bell, X, AlertTriangle, Info,
-    GraduationCap, BarChart3, Timer, Brain, Map, Puzzle
+    GraduationCap, BarChart3, Timer, Brain, Map, Puzzle,
+    ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import styles from './AppLayout.module.css';
 import { useAuth } from '../../context/AuthContext';
@@ -35,6 +36,7 @@ const SEVERITY_STYLE = {
 export default function AppLayout() {
     const { user, logout } = useAuth();
     const [alertsOpen, setAlertsOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
 
     const name = user?.name || 'Student';
     const dept = user?.dept || user?.department || 'CSBS';
@@ -45,9 +47,18 @@ export default function AppLayout() {
     const { alerts, unreadCount, hasCritical, dismiss, toasts, clearToast } = useAlertStream();
 
     return (
-        <div className={styles.layout}>
+        <div className={`${styles.layout} ${collapsed ? styles.layoutCollapsed : ''}`}>
             {/* Sidebar */}
-            <aside className={styles.sidebar}>
+            <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
+                {/* Collapse toggle */}
+                <button
+                    className={styles.collapseBtn}
+                    onClick={() => setCollapsed(c => !c)}
+                    title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                >
+                    {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+                </button>
+
                 {/* Logo */}
                 <div className={styles.logo}>
                     <div className={styles.logoIcon}>✦</div>
@@ -74,6 +85,7 @@ export default function AppLayout() {
                         <NavLink
                             key={item.to}
                             to={item.to}
+                            title={collapsed ? item.label : undefined}
                             className={({ isActive }) =>
                                 `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
                             }
@@ -132,7 +144,7 @@ export default function AppLayout() {
                         className={styles.alertsOverlay}
                         onClick={() => setAlertsOpen(false)}
                     />
-                    <div className={styles.alertsPanel}>
+                    <div className={styles.alertsPanel} style={{ left: collapsed ? 56 : 240 }}>
                         <div className={styles.alertsPanelHeader}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Bell size={16} color="var(--accent)" />

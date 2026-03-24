@@ -5,34 +5,11 @@ Handles: stress detection, motivation, burnout signals,
 LLM: NVIDIA NIM (llama-3.3-70b-instruct) with Groq fallback
 """
 from langchain_core.messages import HumanMessage, SystemMessage
+from utils.llm import get_llm
 from config import settings
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-def _get_llm(temperature: float = 0.5, max_tokens: int = 400):
-    """Return NVIDIA NIM LLM first, fall back to Groq."""
-    if settings.nvidia_api_key:
-        try:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
-                api_key=settings.nvidia_api_key,
-                base_url=settings.nvidia_base_url,
-                model=settings.nvidia_model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            ), "nvidia"
-        except Exception as e:
-            logger.warning(f"NVIDIA NIM init failed ({e}), using Groq")
-    from langchain_groq import ChatGroq
-    return ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    ), "groq"
-
 
 
 EMOTIONAL_SYSTEM = """You are the Emotional Intelligence Agent for an AI academic mentor.
@@ -138,7 +115,7 @@ def extract_sentiment_score(message: str) -> float:
     return round(max(-1.0, min(1.0, avg)), 3)
 
 
-def emotional_node(state: dict) -> dict:
+async def emotional_node(state: dict) -> dict:
     """Emotional intelligence agent — empathy, mental wellness, plus sentiment scoring."""
     message = state["message"]
 
@@ -159,7 +136,7 @@ def emotional_node(state: dict) -> dict:
         # Still expose sentiment_score for write-back — just no LLM response
         return {**state, "emotional_output": None, "sentiment_score": sentiment_score}
 
-    llm, provider = _get_llm()
+    llm, provider = get_llm(temperature=0.5, max_tokens=400)
 
     profile = state.get("student_profile", {})
     context = _format_emotional_context(profile)
@@ -171,7 +148,7 @@ def emotional_node(state: dict) -> dict:
         HumanMessage(content=message),
     ]
 
-    result = llm.invoke(messages)
+    result = await llm.ainvoke(messages)
 
     return {
         **state,

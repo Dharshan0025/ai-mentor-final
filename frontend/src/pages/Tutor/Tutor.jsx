@@ -5,6 +5,7 @@
  * Teaching Style selector, Whiteboard PNG download, Voice I/O.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import {
     Volume2, VolumeX, Mic, MicOff, Send, Brain, Zap, ChevronRight,
     RotateCcw, Loader2, Maximize2, Minimize2, AlertTriangle,
@@ -19,7 +20,7 @@ import {
     getTutorOptions, startTutorLesson, askTutorQuestion, clearTutorSession,
     getLessonPlan, getDueTopics, recordCheckpointMemory, doubtResolve, awardXp,
     saveDiagram, sendAttentionHeartbeat, reportSilenceAlert, getStoredStudent,
-    tutorVisionAnalyze,
+    tutorVisionAnalyze, clarifyDoubt, getTutorTTS,
 } from '../../services/api';
 import CheckpointQuiz from '../../components/CheckpointQuiz/CheckpointQuiz';
 import EquationBlock from '../../components/EquationBlock/EquationBlock';
@@ -81,6 +82,12 @@ const TEACHING_STYLES = [
     { id: 'visual + example-based', label: 'Visual', icon: '🎨', desc: 'Diagrams & examples' },
     { id: 'analytical + logical', label: 'Logical', icon: '🧮', desc: 'Step-by-step reasoning' },
     { id: 'exam-oriented + concise', label: 'Exam-ready', icon: '📝', desc: 'Key points & tips' },
+];
+
+const LANGUAGES = [
+    { id: 'en',         label: 'English',    flag: '🇬🇧', hint: 'Taught in English' },
+    { id: 'thanglish',  label: 'Thanglish',  flag: '🇮🇳', hint: 'Tamil words in English letters' },
+    { id: 'ta',         label: 'Tamil',      flag: '🇮🇳', hint: 'Taught in Tamil script' },
 ];
 
 // —— Voice hook ——————————————————————————————————————————————————————
@@ -395,11 +402,18 @@ function MiniCanvas({ code }) {
 
 // —— Main Page ——————————————————————————————————————————————————————————————
 export default function Tutor() {
+    const { user } = useAuth();
     const [options, setOptions] = useState({ subjects: [], topics_by_subject: {} });
     const [loadingOptions, setLoadingOptions] = useState(true);
     const [optErr, setOptErr] = useState(null);
     const [selSubject, setSelSubject] = useState(null);
     const [selTopic, setSelTopic] = useState(null);
+
+    // Sidebar collapse
+    const [panelOpen, setPanelOpen] = useState(true);
+
+    // Teaching language
+    const [tutorLanguage, setTutorLanguage] = useState('en');
 
     // Teaching style
     const [teachingStyle, setTeachingStyle] = useState('visual + example-based');
@@ -418,11 +432,16 @@ export default function Tutor() {
     const [currentSubtitle, setCurrentSubtitle] = useState('');
     const [lessonDone, setLessonDone] = useState(false);
     const [lessonErr, setLessonErr] = useState(null);
-    // Tracks whether at least one narration has been delivered this lesson
-    // Used to prevent the checkpoint quiz from popping up before teaching starts
     const narrationStartedRef = useRef(false);
-    const pendingCheckpointRef = useRef(null); // Buffer checkpoint until narration begins
+    const pendingCheckpointRef = useRef(null);
     const narrationEndRef = useRef(null);
+
+    // Step-by-step pacing — buffer all steps then display one at a time
+    const [allSteps, setAllSteps] = useState([]);    // [{step,title,narrations[],diagram,checkpoint}]
+    const [shownStepIdx, setShownStepIdx] = useState(-1);   // index into allSteps currently shown
+    const buildingStepRef  = useRef(null);   // step currently being built from SSE events
+    const stepBufferRef    = useRef([]);     // accumulates step objects before committing to state
+    const allStepsRef      = useRef([]);     // mirror of allSteps for use inside callbacks
 
     // Checkpoint
     const [checkpoint, setCheckpoint] = useState(null);
@@ -488,7 +507,71 @@ export default function Tutor() {
     const [visionLoading, setVisionLoading] = useState(false);
     const visionInputRef = useRef(null);
 
+    // Voice Doubt — Hold-to-Ask
+    const [isRecording, setIsRecording]         = useState(false);
+    const [clarifyLoading, setClarifyLoading]   = useState(false);
+    const [clarifyResult, setClarifyResult]     = useState(null); // {transcript, clarification}
+    const mediaRecorderRef  = useRef(null);
+    const audioChunksRef    = useRef([]);
+    const clarifyAudioRef   = useRef(null); // <audio> element for Sarvam WAV playback
+
+    // Sarvam TTS audio queue for Tamil narrations
+    const sarvamQueueRef    = useRef([]);   // array of base64 audio strings pending play
+    const sarvamPlayingRef  = useRef(false);
+    const lessonAudioRef    = useRef(null); // <audio> element for lesson narration
+
     const speech = useSpeech();
+
+    // Play next item in Sarvam audio queue
+    const playSarvamQueue = useCallback(() => {
+        if (sarvamPlayingRef.current || !sarvamQueueRef.current.length) return;
+        const audioB64 = sarvamQueueRef.current.shift();
+        sarvamPlayingRef.current = true;
+        try {
+            const bytes = Uint8Array.from(atob(audioB64), c => c.charCodeAt(0));
+            const blob  = new Blob([bytes], { type: 'audio/wav' });
+            const url   = URL.createObjectURL(blob);
+            if (lessonAudioRef.current) {
+                lessonAudioRef.current.src = url;
+                lessonAudioRef.current.onended = () => {
+                    URL.revokeObjectURL(url);
+                    sarvamPlayingRef.current = false;
+                    playSarvamQueue();
+                };
+                lessonAudioRef.current.onerror = () => {
+                    sarvamPlayingRef.current = false;
+                    playSarvamQueue();
+                };
+                lessonAudioRef.current.play().catch(() => {
+                    sarvamPlayingRef.current = false;
+                    playSarvamQueue();
+                });
+            }
+        } catch {
+            sarvamPlayingRef.current = false;
+        }
+    }, []);
+
+    // Always try Sarvam first (all languages), fall back to browser TTS
+    const speakNarration = useCallback(async (text) => {
+        if (!speech.voiceEnabled) return;
+        if (!text?.trim()) return;
+        try {
+            const audioBlob = await getTutorTTS(text, tutorLanguage);
+            if (audioBlob) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const b64 = reader.result.split(',')[1];
+                    sarvamQueueRef.current.push(b64);
+                    playSarvamQueue();
+                };
+                reader.readAsDataURL(audioBlob);
+                return;
+            }
+        } catch { /* fall through */ }
+        // Groq/browser TTS fallback
+        speech.speak(text);
+    }, [tutorLanguage, speech, playSarvamQueue]);
 
     const subjects = options.subjects || [];
     const topics = selSubject ? (options.topics_by_subject || {})[selSubject.code] || [] : [];
@@ -593,14 +676,14 @@ export default function Tutor() {
         setAskErr(null);
         setAsking(true);
         const history = qaThread.slice(-6).map(({ role, content }) => ({ role, content }));
-        askTutorQuestion({ subjectCode: selSubject.code, topic: selTopic, question: q, history, sessionId })
+        askTutorQuestion({ subjectCode: selSubject.code, topic: selTopic, question: q, history, sessionId, language: tutorLanguage })
             .then(({ answer }) => {
                 setQaThread(p => [...p, { role: 'user', content: q }, { role: 'assistant', content: answer }]);
-                if (answer && speech.voiceEnabled) speech.speak(answer.replace(/\n+/g, ' ').slice(0, 400));
+                if (answer && speech.voiceEnabled) speakNarration(answer.replace(/\n+/g, ' ').slice(0, 400));
             })
             .catch(e => setAskErr(e.response?.data?.detail || e.message || 'Failed to get answer'))
             .finally(() => { setAsking(false); lastSentTranscriptRef.current = ''; });
-    }, [talkMode, speech.listening, speech.transcript, selSubject, selTopic, qaThread, sessionId, speech.voiceEnabled, speech.setTranscript, speech.speak]);
+    }, [talkMode, speech.listening, speech.transcript, selSubject, selTopic, qaThread, sessionId, speech.voiceEnabled, speech.setTranscript, speech.speak, tutorLanguage, speakNarration]);
 
     // Voice Interruption (Spacebar)
     useEffect(() => {
@@ -637,7 +720,64 @@ export default function Tutor() {
         setEquations([]); setCodeBlocks([]);
         narrationStartedRef.current = false;
         pendingCheckpointRef.current = null;
+        buildingStepRef.current = null;
+        stepBufferRef.current = [];
+        allStepsRef.current = [];
+        setAllSteps([]);
+        setShownStepIdx(-1);
+        // Clear Sarvam audio queue
+        sarvamQueueRef.current = [];
+        sarvamPlayingRef.current = false;
+        if (lessonAudioRef.current) { lessonAudioRef.current.pause(); lessonAudioRef.current.src = ''; }
     };
+
+    // Show a specific step from the allSteps buffer
+    const showStep = useCallback((idx) => {
+        const step = allStepsRef.current[idx];
+        if (!step) return;
+        setShownStepIdx(idx);
+        setCurrentStep(step.step);
+        setDiagramTitle(step.title);
+        setCurrentDiagram(step.diagram || '');
+        setCurrentSubtitle('');
+        setCheckpoint(null);
+        setPaused(false);
+        // Speak narrations
+        step.narrations.forEach((text, i) => {
+            setTimeout(() => {
+                setCurrentSubtitle(text);
+                speakNarration(text);
+            }, i * 80);
+        });
+        // Show checkpoint after narrations finish
+        if (step.checkpoint) {
+            setTimeout(() => {
+                setCheckpoint(step.checkpoint);
+                setPaused(true);
+            }, step.narrations.length * 80 + 400);
+        }
+        if (step.equations?.length) setEquations(step.equations);
+    }, [speakNarration]);
+
+    // Auto-show step 1 once all steps are buffered
+    useEffect(() => {
+        if (allSteps.length > 0 && shownStepIdx === -1) {
+            showStep(0);
+        }
+    }, [allSteps, shownStepIdx, showStep]);
+
+    const handleNextStep = useCallback(() => {
+        const nextIdx = shownStepIdx + 1;
+        if (nextIdx < allStepsRef.current.length) {
+            speech.stop();
+            sarvamQueueRef.current = [];
+            sarvamPlayingRef.current = false;
+            if (lessonAudioRef.current) { lessonAudioRef.current.pause(); lessonAudioRef.current.src = ''; }
+            showStep(nextIdx);
+        } else {
+            setLessonDone(true);
+        }
+    }, [shownStepIdx, showStep, speech]);
 
     const startNewConversation = useCallback(async () => {
         if (sessionId) {
@@ -679,7 +819,7 @@ export default function Tutor() {
         speech.stop();
 
         try {
-            const res = await startTutorLesson({ subjectCode: selSubject.code, topic: selTopic, mode: 'visual', sessionId });
+            const res = await startTutorLesson({ subjectCode: selSubject.code, topic: selTopic, mode: 'visual', sessionId, language: tutorLanguage, lessonPlanSteps: lessonPlan?.steps || [] });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
             const reader = res.body.getReader();
@@ -704,46 +844,37 @@ export default function Tutor() {
                                 if (typeof sessionStorage !== 'undefined')
                                     sessionStorage.setItem('tutor_session_id', data.session_id);
                             } else if (evt === 'step') {
-                                // Only advance step — never jump backwards or skip
+                                // Commit previous step to buffer
+                                if (buildingStepRef.current) {
+                                    stepBufferRef.current.push(buildingStepRef.current);
+                                }
+                                buildingStepRef.current = {
+                                    step: data.step, title: data.title,
+                                    narrations: [], diagram: null, checkpoint: null,
+                                };
+                                // Update the lesson flow rail
                                 setSteps(p => [...p, { step: data.step, title: data.title }]);
-                                setCurrentStep(prev => Math.max(prev, data.step ?? (prev + 1)));
-                                setDiagramTitle(data.title);
                             } else if (evt === 'narration') {
-                                setCurrentSubtitle(data.text);
-                                speech.speak(data.text);
-                                // Mark that at least one narration has been delivered
-                                if (!narrationStartedRef.current) {
-                                    narrationStartedRef.current = true;
-                                    // If a checkpoint was buffered before narration started, show it now
-                                    if (pendingCheckpointRef.current) {
-                                        setCheckpoint(pendingCheckpointRef.current);
-                                        setPaused(true);
-                                        pendingCheckpointRef.current = null;
-                                    }
-                                }
-                                // Also queue for Nova Sonic if panel is open
-                                if (showVoicePanel) {
-                                    setVoiceSpeakQueue(q => [...q, { text: data.text }]);
-                                }
+                                if (buildingStepRef.current) buildingStepRef.current.narrations.push(data.text);
                             } else if (evt === 'diagram') {
-                                setCurrentDiagram(data.mermaid);
-                                if (data.title) setDiagramTitle(data.title);
+                                if (buildingStepRef.current) buildingStepRef.current.diagram = data.mermaid;
                             } else if (evt === 'equation') {
-                                setEquations(p => [...p, data]);
-                            } else if (evt === 'code_block') {
-                                setCodeBlocks(p => [...p, data]);
+                                if (buildingStepRef.current) {
+                                    buildingStepRef.current.equations = buildingStepRef.current.equations || [];
+                                    buildingStepRef.current.equations.push(data);
+                                }
                             } else if (evt === 'checkpoint') {
-                                const cpData = { ...data, subjectCode: selSubject.code };
-                                if (narrationStartedRef.current) {
-                                    // Narration already started — show checkpoint immediately
-                                    setCheckpoint(cpData);
-                                    setPaused(true);
-                                } else {
-                                    // Buffer it — will be released when first narration fires
-                                    pendingCheckpointRef.current = cpData;
+                                if (buildingStepRef.current) {
+                                    buildingStepRef.current.checkpoint = { ...data, subjectCode: selSubject.code };
                                 }
                             } else if (evt === 'done') {
-                                setLessonDone(true);
+                                // Commit final step, then publish all steps at once
+                                if (buildingStepRef.current) {
+                                    stepBufferRef.current.push(buildingStepRef.current);
+                                    buildingStepRef.current = null;
+                                }
+                                allStepsRef.current = stepBufferRef.current;
+                                setAllSteps([...stepBufferRef.current]);
                             } else if (evt === 'error') {
                                 setLessonErr(data.error);
                             }
@@ -758,7 +889,7 @@ export default function Tutor() {
         } finally {
             setTeaching(false);
         }
-    }, [selSubject, selTopic, sessionId, speech]);
+    }, [selSubject, selTopic, sessionId, speech, speakNarration, tutorLanguage, showVoicePanel]);
 
     const handleCheckpointPass = useCallback(() => {
         setCheckpoint(null); setPaused(false);
@@ -865,6 +996,72 @@ export default function Tutor() {
         if (visionInputRef.current) visionInputRef.current.value = '';
     }, [selSubject, selTopic, speech]);
 
+    // —— Hold-to-Ask: start recording doubt ————————————————————————————————————
+    const startRecordingDoubt = useCallback(async () => {
+        if (isRecording || !lessonStarted) return;
+        // Pause speech while student speaks
+        speech.stop();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mr = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            audioChunksRef.current = [];
+            mr.ondataavailable = e => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+            mr.start();
+            mediaRecorderRef.current = mr;
+            setIsRecording(true);
+            setClarifyResult(null);
+        } catch (e) {
+            console.warn('Mic access denied:', e);
+        }
+    }, [isRecording, lessonStarted, speech]);
+
+    const stopRecordingDoubt = useCallback(async () => {
+        if (!isRecording || !mediaRecorderRef.current) return;
+        setIsRecording(false);
+
+        await new Promise(resolve => {
+            mediaRecorderRef.current.onstop = resolve;
+            mediaRecorderRef.current.stop();
+            // Stop all mic tracks
+            mediaRecorderRef.current.stream?.getTracks().forEach(t => t.stop());
+        });
+
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        if (blob.size < 1000) return; // Too short — ignore
+
+        setClarifyLoading(true);
+        try {
+            const result = await clarifyDoubt(blob, {
+                subjectCode: selSubject?.code || '',
+                topic: selTopic || '',
+                language: tutorLanguage,
+                sessionId: sessionId || '',
+                lessonContext: `Step ${currentStep}: ${diagramTitle}`,
+            });
+            setClarifyResult(result);
+            setAvatarTimed('happy', 4000);
+
+            // Play audio response: Sarvam WAV for Tamil, browser TTS for others
+            if (result.audio_base64) {
+                const bytes = Uint8Array.from(atob(result.audio_base64), c => c.charCodeAt(0));
+                const wavBlob = new Blob([bytes], { type: 'audio/wav' });
+                const url = URL.createObjectURL(wavBlob);
+                if (clarifyAudioRef.current) {
+                    clarifyAudioRef.current.src = url;
+                    clarifyAudioRef.current.play().catch(() => {});
+                }
+            } else if (result.clarification && speech.voiceEnabled) {
+                speech.speak(result.clarification.slice(0, 400));
+            }
+        } catch (e) {
+            console.warn('Clarify failed:', e);
+        } finally {
+            setClarifyLoading(false);
+        }
+    }, [isRecording, selSubject, selTopic, tutorLanguage, sessionId, currentStep, diagramTitle, speech, setAvatarTimed]);
+
+    const dismissClarify = useCallback(() => setClarifyResult(null), []);
+
     const sendQuestion = useCallback(async (text) => {
         const q = (text || questionInput || '').trim();
         if (!q || !selSubject || !selTopic) return;
@@ -874,17 +1071,17 @@ export default function Tutor() {
         try {
             const history = qaThread.slice(-6).map(({ role, content }) => ({ role, content }));
             const { answer, mermaid } = await askTutorQuestion({
-                subjectCode: selSubject.code, topic: selTopic, question: q, history, sessionId
+                subjectCode: selSubject.code, topic: selTopic, question: q, history, sessionId, language: tutorLanguage
             });
             setQaThread(p => [...p, { role: 'assistant', content: answer, mermaid }]);
-            if (answer && speech.voiceEnabled) speech.speak(answer.replace(/\n+/g, ' ').slice(0, 400));
+            if (answer && speech.voiceEnabled) speakNarration(answer.replace(/\n+/g, ' ').slice(0, 400));
         } catch (e) {
             setAskErr(e.response?.data?.detail || e.message || 'Failed to get answer');
             setQaThread(p => p.slice(0, -1));
         } finally {
             setAsking(false);
         }
-    }, [selSubject, selTopic, questionInput, qaThread, sessionId, speech]);
+    }, [selSubject, selTopic, questionInput, qaThread, sessionId, speech, tutorLanguage, speakNarration]);
 
     const handleDueTopicSelect = useCallback((dueTopic) => {
         const matchSubj = subjects.find(s => s.code === dueTopic.subject_code);
@@ -928,7 +1125,14 @@ export default function Tutor() {
             )}
 
             {/* — Left panel —————————————————————————————————————————— */}
-            <aside className={styles.panel}>
+            <aside className={`${styles.panel} ${!panelOpen ? styles.panelCollapsed : ''}`}>
+                <button
+                    className={styles.panelToggle}
+                    onClick={() => setPanelOpen(o => !o)}
+                    title={panelOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                >
+                    {panelOpen ? <ChevronRight size={14} /> : <ChevronRight size={14} style={{ transform: 'rotate(180deg)' }} />}
+                </button>
                 <div className={styles.panelHeader}>
                     <TeacherAvatar state={avatarState} size={46} />
                     <div style={{ flex: 1 }}>
@@ -992,6 +1196,24 @@ export default function Tutor() {
                         <AlertTriangle size={12} /> {optErr}
                     </div>
                 )}
+
+                {/* Language Selector */}
+                <div className={styles.styleSelector}>
+                    <span className={styles.styleSelectorLabel}>Lesson Language</span>
+                    {LANGUAGES.map(lang => (
+                        <button
+                            key={lang.id}
+                            className={`${styles.styleBtn} ${tutorLanguage === lang.id ? styles.styleBtnActive : ''}`}
+                            onClick={() => setTutorLanguage(lang.id)}
+                            disabled={lessonStarted}
+                            title={lang.hint}
+                        >
+                            <span>{lang.flag}</span>
+                            <span>{lang.label}</span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-3)', marginLeft: 'auto' }}>{lang.hint}</span>
+                        </button>
+                    ))}
+                </div>
 
                 {/* Teaching Style */}
                 <div className={styles.styleSelector}>
@@ -1104,23 +1326,94 @@ export default function Tutor() {
                                     </div>
                                 )}
 
+                                {/* Lesson loading banner */}
+                                {teaching && allSteps.length === 0 && (
+                                    <div className={styles.lessonLoadingBanner}>
+                                        <Loader2 size={16} className={styles.spin} />
+                                        <span>Preparing your lesson…</span>
+                                    </div>
+                                )}
+
                                 {/* Lesson complete banner */}
-                                {lessonDone && !teaching && (
+                                {lessonDone && (
                                     <div className={styles.lessonDoneBanner}>
                                         <CheckCircle2 size={18} />
                                         <div>
                                             <div className={styles.lessonDoneTitle}>Lesson Complete!</div>
-                                            <span className={styles.lessonDoneSub}>{steps.length} steps covered · Ask follow-up questions below</span>
+                                            <span className={styles.lessonDoneSub}>{allSteps.length} steps covered · Ask follow-up questions below</span>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* Step navigation — Continue to next step */}
+                                {allSteps.length > 0 && !lessonDone && (
+                                    <div className={styles.stepNavRow}>
+                                        <span className={styles.stepNavInfo}>
+                                            Step {shownStepIdx + 1} of {allSteps.length}
+                                            {paused && <span className={styles.stepNavCheckpoint}> — answer the quiz to continue</span>}
+                                        </span>
+                                        <button
+                                            className={styles.stepNavBtn}
+                                            onClick={handleNextStep}
+                                            disabled={paused}
+                                        >
+                                            {shownStepIdx + 1 >= allSteps.length ? 'Finish Lesson' : 'Next Step'} <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Hidden audio elements for Sarvam TTS playback */}
+                                <audio ref={lessonAudioRef} style={{ display: 'none' }} />
+                                <audio ref={clarifyAudioRef} style={{ display: 'none' }} />
+
+                                {/* —— Hold-to-Ask Voice Doubt ——————————————————— */}
+                                <div className={styles.holdAskRow}>
+                                    <button
+                                        className={`${styles.holdAskBtn} ${isRecording ? styles.holdAskBtnActive : ''} ${clarifyLoading ? styles.holdAskBtnLoading : ''}`}
+                                        onMouseDown={startRecordingDoubt}
+                                        onMouseUp={stopRecordingDoubt}
+                                        onTouchStart={e => { e.preventDefault(); startRecordingDoubt(); }}
+                                        onTouchEnd={e => { e.preventDefault(); stopRecordingDoubt(); }}
+                                        disabled={clarifyLoading || !lessonStarted}
+                                        title="Hold to ask a doubt — release to send"
+                                    >
+                                        {clarifyLoading
+                                            ? <><Loader2 size={15} className={styles.spin} /> Thinking…</>
+                                            : isRecording
+                                                ? <><MicOff size={15} /> Release to send</>
+                                                : <><Mic size={15} /> Hold to Ask</>}
+                                    </button>
+                                    <span className={styles.holdAskHint}>
+                                        {tutorLanguage === 'ta' ? 'தமிழில் கேளுங்கள்' : tutorLanguage === 'thanglish' ? 'Thanglish la kelunga' : 'Speak your doubt'}
+                                    </span>
+                                </div>
+
+                                {/* Clarification result panel */}
+                                {clarifyResult && (
+                                    <div className={styles.clarifyPanel}>
+                                        <div className={styles.clarifyQuestion}>
+                                            <Mic size={12} />
+                                            <span>{clarifyResult.transcript}</span>
+                                        </div>
+                                        <div className={styles.clarifyAnswer}>
+                                            <Brain size={12} />
+                                            <span>{clarifyResult.clarification}</span>
+                                        </div>
+                                        <button className={styles.clarifyDismiss} onClick={dismissClarify}>
+                                            Continue lesson ›
+                                        </button>
                                     </div>
                                 )}
 
                                 {/* Status bar */}
                                 <div className={styles.statusBar}>
                                     <div className={styles.statusLeft}>
-                                        {teaching && <>
+                                        {teaching && allSteps.length === 0 && <>
                                             <span className={styles.liveDot} />
-                                            <span className={styles.statusText}>Teaching step {currentStep}{paused ? ' — Checkpoint ⌃' : '…'}</span>
+                                            <span className={styles.statusText}>Loading lesson…</span>
+                                        </>}
+                                        {allSteps.length > 0 && !lessonDone && <>
+                                            <span className={styles.statusText}>{allSteps[shownStepIdx]?.title || selTopic}{paused ? ' — Quiz' : ''}</span>
                                         </>}
                                         {lessonErr && <span className={styles.errText}><AlertTriangle size={13} /> {lessonErr}</span>}
                                         {!teaching && !lessonDone && !lessonErr && selTopic && (

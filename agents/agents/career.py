@@ -2,45 +2,26 @@
 AI-Mentor — Career Intelligence Agent
 Handles: career domain mapping, strength analysis, roadmap generation,
          certification recommendations, internship/placement guidance.
-LLM: NVIDIA NIM (llama-3.3-70b-instruct) with Groq fallback
+LLM: Groq (primary)
 
 Architecture:
-  1. compute_career_profile()  — deterministic, data-driven analysis
-  2. career_node()             — LangGraph node (LLM narrative)
-  3. generate_career_report()  — full structured JSON for Career page
+  1. compute_career_profile()   — deterministic, data-driven analysis
+  2. career_node()              — LangGraph node (LLM narrative)
+  3. generate_career_report()   — full structured JSON for Career page
+  4. build_roadmap_timeline()   — month-by-month career timeline
+  5. get_career_digest()        — weekly personalized digest
 """
 from langchain_core.messages import HumanMessage, SystemMessage
+from utils.llm import get_llm
 from config import settings
+from datetime import datetime
 import logging
 import json
 
 logger = logging.getLogger(__name__)
 
 
-def _get_llm(temperature: float = 0.4, max_tokens: int = 600):
-    """Return NVIDIA NIM LLM first, fall back to Groq."""
-    if settings.nvidia_api_key:
-        try:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
-                api_key=settings.nvidia_api_key,
-                base_url=settings.nvidia_base_url,
-                model=settings.nvidia_model,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            ), "nvidia"
-        except Exception as e:
-            logger.warning(f"NVIDIA NIM init failed ({e}), using Groq")
-    from langchain_groq import ChatGroq
-    return ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    ), "groq"
 
-
-# ── Career Domain Mapping ───────────────────────────────────────────────────
 # Maps subject codes and keywords → career domains with 2025 relevance
 SUBJECT_DOMAIN_MAP = {
     # CS/CSBS subjects → Career domains
@@ -353,9 +334,9 @@ Response rules:
 - Maximum 400 words
 - End with ONE high-impact, actionable step they can take TODAY"""
 
-def career_node(state: dict) -> dict:
+async def career_node(state: dict) -> dict:
     """Career intelligence agent — academic-to-career mapping with LLM narrative."""
-    llm, provider = _get_llm()
+    llm, provider = get_llm(temperature=0.4, max_tokens=600)
 
     profile = state.get("student_profile", {})
     career_data = compute_career_profile(profile)
@@ -370,7 +351,7 @@ def career_node(state: dict) -> dict:
         HumanMessage(content=state["message"]),
     ]
 
-    result = llm.invoke(messages)
+    result = await llm.ainvoke(messages)
 
     return {
         **state,
@@ -452,7 +433,6 @@ def _get_salary_range(cgpa: float, domain: str) -> dict:
         "Data Engineer": (8, 30),
     }
     low, high = base_ranges.get(domain, (5, 20))
-    # CGPA multiplier
     if cgpa >= 8.0:
         modifier = 1.2
     elif cgpa >= 7.5:
@@ -466,4 +446,169 @@ def _get_salary_range(cgpa: float, domain: str) -> dict:
         "min_lpa": round(low * modifier, 1),
         "max_lpa": round(high * modifier, 1),
         "fresher_average_lpa": round((low * modifier + high * modifier) / 2.5, 1),
+    }
+
+
+# ── Career Roadmap Timeline ──────────────────────────────────────────────────
+
+_PLACEMENT_SEASON = "Sep – Nov (campus drives)"
+
+_DSA_TOPICS_BY_DOMAIN = {
+    "AI/ML Engineer":        "NumPy / Pandas + LeetCode SQL",
+    "Data Scientist":        "SQL problems + Statistics fundamentals",
+    "Software Developer":    "Arrays, Strings, Trees (NeetCode 150)",
+    "Full-Stack Developer":  "Arrays + HashMaps + System Design basics",
+    "Cloud Architect":       "System Design + AWS SAA prep",
+    "DevOps/SRE":            "Linux scripting + System Design",
+    "Cybersecurity Analyst": "Networking theory + CTF challenges",
+    "Data Engineer":         "SQL optimisation + distributed systems theory",
+}
+
+def build_roadmap_timeline(profile: dict, domain: str = None) -> list[dict]:
+    """
+    Generate a month-by-month career readiness timeline based on
+    current semester, CGPA, and target domain.
+    Returns list of { month, label, milestone, action, type }
+    Types: foundation | cert | project | dsa | apply | placement | critical
+    """
+    semester = profile.get("semester", 7)
+    cgpa     = float(profile.get("currentCGPA") or 0)
+    arrears  = profile.get("arrearsHistory", [])
+    has_arrears = len([a for a in arrears if "cleared" not in str(a).lower()]) > 0
+
+    if not domain:
+        intel  = compute_career_profile(profile)
+        domain = intel["primary_domain"]
+
+    dsa_topic = _DSA_TOPICS_BY_DOMAIN.get(domain, "Arrays & Hashing (NeetCode 150)")
+    cert      = CERT_MAP.get(domain, ["Domain certification"])[0]
+
+    timeline: list[dict] = []
+
+    # Critical blockers first (month 0)
+    if has_arrears:
+        timeline.append({
+            "month": 0, "label": "URGENT",
+            "milestone": "Clear all arrears",
+            "action": "Arrears block product company applications — clear this semester",
+            "type": "critical",
+        })
+    if cgpa < 6.5:
+        timeline.append({
+            "month": 0, "label": "URGENT",
+            "milestone": "CGPA below eligibility",
+            "action": "Target 6.5+ CGPA to qualify for service companies",
+            "type": "critical",
+        })
+    elif cgpa < 7.5 and semester <= 7:
+        timeline.append({
+            "month": 0, "label": "Now",
+            "milestone": "CGPA sprint — target 7.5+",
+            "action": "Focus on at-risk subjects to unlock MAANG eligibility",
+            "type": "critical",
+        })
+
+    if semester <= 5:
+        timeline += [
+            {"month": 0,  "label": "Now",     "milestone": "Explore domain", "action": f"Confirm {domain} is your path — take a free intro course", "type": "foundation"},
+            {"month": 1,  "label": "Month 1", "milestone": "Core skills",   "action": f"Start learning {DOMAIN_SKILLS.get(domain, ['Python'])[0]} fundamentals", "type": "foundation"},
+            {"month": 2,  "label": "Month 2", "milestone": "First project", "action": "Build a beginner-level GitHub project (any domain topic)", "type": "project"},
+            {"month": 3,  "label": "Month 3", "milestone": "Certification", "action": f"Enrol: {cert}", "type": "cert"},
+            {"month": 5,  "label": "Month 5", "milestone": "Internship search", "action": "Apply to 10+ internships on Internshala & Unstop", "type": "apply"},
+            {"month": 6,  "label": "Month 6", "milestone": "Internship secured", "action": "Convert to PPO opportunity if possible", "type": "milestone"},
+        ]
+    elif semester == 6:
+        timeline += [
+            {"month": 0,  "label": "Now",     "milestone": "Start DSA daily",   "action": f"{dsa_topic} — 2 problems/day minimum", "type": "dsa"},
+            {"month": 1,  "label": "Month 1", "milestone": "Certification",     "action": f"Enrol: {cert}", "type": "cert"},
+            {"month": 1,  "label": "Month 1", "milestone": "Project #1",        "action": f"Build & push a {domain} project to GitHub", "type": "project"},
+            {"month": 2,  "label": "Month 2", "milestone": "Internship apps",   "action": "Apply 10+ positions on LinkedIn, Internshala, Unstop", "type": "apply"},
+            {"month": 3,  "label": "Month 3", "milestone": "Cert completed",    "action": "Add certificate to LinkedIn + resume", "type": "cert"},
+            {"month": 4,  "label": "Month 4", "milestone": "Project #2",        "action": "Second GitHub project — more complex, uses APIs", "type": "project"},
+            {"month": 5,  "label": "Month 5", "milestone": "Internship active", "action": "Deliver results — aim for PPO", "type": "milestone"},
+        ]
+    elif semester == 7:
+        timeline += [
+            {"month": 0,  "label": "Now",     "milestone": "LeetCode daily",        "action": f"{dsa_topic} — 2 problems/day, track on spreadsheet", "type": "dsa"},
+            {"month": 0,  "label": "Now",     "milestone": "Resume draft",          "action": "ATS-optimised resume with 2 projects + skills", "type": "foundation"},
+            {"month": 1,  "label": "Month 1", "milestone": "Certification",         "action": f"Enrol: {cert}", "type": "cert"},
+            {"month": 1,  "label": "Month 1", "milestone": "Project #1 on GitHub",  "action": f"{domain} project — deployed & documented", "type": "project"},
+            {"month": 2,  "label": "Month 2", "milestone": "LeetCode 75 done",      "action": "Complete NeetCode Blind 75 — move to medium/hard", "type": "dsa"},
+            {"month": 2,  "label": "Month 2", "milestone": "LinkedIn optimised",    "action": "Profile + 500 connections + referral outreach", "type": "foundation"},
+            {"month": 3,  "label": "Month 3", "milestone": "Placement registrations", "action": f"Register for campus drives — {_PLACEMENT_SEASON}", "type": "placement"},
+            {"month": 3,  "label": "Month 3", "milestone": "Project #2 live",       "action": "Two polished GitHub projects before interviews start", "type": "project"},
+            {"month": 4,  "label": "Month 4", "milestone": "Active interviews",     "action": "Campus + off-campus drives — track applications", "type": "placement"},
+            {"month": 5,  "label": "Month 5", "milestone": "Offer / PPO",           "action": "Negotiate offer — compare package & growth", "type": "milestone"},
+        ]
+    else:  # sem 8
+        timeline += [
+            {"month": 0,  "label": "Now",     "milestone": "System design prep",    "action": "Grokking System Design + LeetCode hard", "type": "dsa"},
+            {"month": 0,  "label": "Now",     "milestone": "Final resume polish",   "action": "Update with all projects, internship, certifications", "type": "foundation"},
+            {"month": 1,  "label": "Month 1", "milestone": "Campus drives",         "action": "Attend every eligible company drive on campus", "type": "placement"},
+            {"month": 1,  "label": "Month 1", "milestone": "Off-campus applications","action": "LinkedIn + referrals — product companies don't only hire via campus", "type": "apply"},
+            {"month": 2,  "label": "Month 2", "milestone": "Offer in hand",         "action": "Evaluate offers — CTC, role, tech stack, growth", "type": "milestone"},
+            {"month": 3,  "label": "Month 3", "milestone": "Pre-joining prep",      "action": f"Learn day-1 tech stack for {domain} role", "type": "foundation"},
+        ]
+
+    return timeline
+
+
+# ── Weekly Career Digest ─────────────────────────────────────────────────────
+
+_LC_RECOMMENDATION = {
+    "AI/ML Engineer":        {"topic": "SQL + Array problems", "goal": "2 problems/day"},
+    "Data Scientist":        {"topic": "SQL problems on LeetCode", "goal": "3 SQL problems/day"},
+    "Software Developer":    {"topic": "Binary Search + Trees (NeetCode 150)", "goal": "2 problems/day"},
+    "Full-Stack Developer":  {"topic": "Arrays + HashMaps", "goal": "2 problems/day"},
+    "Cloud Architect":       {"topic": "System Design fundamentals", "goal": "1 design question/day"},
+    "DevOps/SRE":            {"topic": "System Design + Linux scripting", "goal": "1 design question/day"},
+    "Cybersecurity Analyst": {"topic": "Networking + CTF writeups", "goal": "1 challenge/day"},
+    "Data Engineer":         {"topic": "SQL advanced + distributed systems", "goal": "2 problems/day"},
+}
+
+def get_career_digest(profile: dict) -> dict:
+    """
+    Weekly personalized career digest — what to focus on this week,
+    next skill to learn, LeetCode recommendation, and key actions.
+    """
+    intel  = compute_career_profile(profile)
+    domain = intel["primary_domain"]
+    cgpa   = intel["cgpa"]
+    semester = intel["semester"]
+
+    # Determine this week's primary focus
+    if intel["has_active_arrears"]:
+        weekly_focus = "Clear your arrears — this blocks every product company application"
+        focus_type   = "critical"
+    elif cgpa < 6.5:
+        weekly_focus = "Push CGPA to 6.5+ for service company eligibility this semester"
+        focus_type   = "academic"
+    elif cgpa < 7.5 and semester <= 7:
+        weekly_focus = f"Sprint CGPA to 7.5+ — unlocks MAANG & top product companies for {domain}"
+        focus_type   = "academic"
+    elif intel["readiness_score"] < 50:
+        skill = DOMAIN_SKILLS.get(domain, ["Python"])[0]
+        weekly_focus = f"Start learning {skill} this week — your biggest skill gap for {domain}"
+        focus_type   = "skill"
+    else:
+        cert = CERT_MAP.get(domain, ["a domain certification"])[0]
+        weekly_focus = f"Enrol in '{cert}' — adds 30–50% salary premium for {domain} roles"
+        focus_type   = "cert"
+
+    lc = _LC_RECOMMENDATION.get(domain, {"topic": "Arrays & Hashing (NeetCode 150)", "goal": "2 problems/day"})
+    primary_skills = DOMAIN_SKILLS.get(domain, [])
+
+    return {
+        "week_of":               datetime.now().strftime("%b %d, %Y"),
+        "domain":                domain,
+        "readiness_score":       intel["readiness_score"],
+        "readiness_delta_hint":  "+2–5 pts possible this week if you complete one action",
+        "weekly_focus":          weekly_focus,
+        "focus_type":            focus_type,
+        "next_skill_to_learn":   primary_skills[0] if primary_skills else None,
+        "leetcode_recommendation": lc,
+        "this_week_actions":     intel["urgent_actions"][:3],
+        "placement_weeks":       intel["weeks_to_placement"],
+        "top_cert":              CERT_MAP.get(domain, [""])[0],
+        "top_companies":         _get_hiring_companies(domain)[:3],
     }

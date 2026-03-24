@@ -220,6 +220,63 @@
     margin-left: 240px;
     min-height: 100vh;
     overflow-x: hidden;
+    transition: margin-left 0.22s ease;
+}
+
+/* ── Collapsed sidebar ───────────────────────────────────────── */
+.sidebarCollapsed {
+    width: 56px;
+    padding: var(--sp-4) var(--sp-2);
+    align-items: center;
+}
+
+.sidebarCollapsed .logo,
+.sidebarCollapsed .studentInfo,
+.sidebarCollapsed .divider,
+.sidebarCollapsed .sidebarFooter,
+.sidebarCollapsed .alertBell {
+    display: none;
+}
+
+.sidebarCollapsed .navLabel {
+    display: none;
+}
+
+.sidebarCollapsed .navItem {
+    justify-content: center;
+    padding: 10px;
+}
+
+.layoutCollapsed .main {
+    margin-left: 56px;
+}
+
+/* ── Collapse toggle button ──────────────────────────────────── */
+.collapseBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-3);
+    cursor: pointer;
+    align-self: flex-end;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+    margin-bottom: 4px;
+}
+
+.collapseBtn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.sidebarCollapsed .collapseBtn {
+    align-self: center;
 }
 
 @media (max-width: 768px) {

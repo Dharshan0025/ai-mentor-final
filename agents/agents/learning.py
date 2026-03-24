@@ -8,7 +8,7 @@ from datetime import datetime
 import logging
 import json
 
-from langchain_groq import ChatGroq
+from utils.llm import get_llm
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from config import settings
@@ -55,12 +55,7 @@ Rules:
 
 async def learning_node(state: dict) -> dict:
     """Learning agent — adaptive explanations + quiz generation."""
-    llm = ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0.4,
-        max_tokens=600,
-    )
+    llm, provider = get_llm(temperature=0.4, max_tokens=600)
 
     profile = state.get("student_profile", {})
     student_id = state.get("student_id")
@@ -99,7 +94,7 @@ async def learning_node(state: dict) -> dict:
     return {
         **state,
         "learning_output": result.content,
-        "model_used": settings.groq_model,
+        "model_used": provider,
     }
 
 
@@ -170,12 +165,7 @@ def generate_quiz(subject: str, topic: str, bloom_level: int) -> dict:
     Generate targeted MCQ quiz questions for a specific topic and Bloom level.
     Returns structured JSON for the frontend to render interactively.
     """
-    llm = ChatGroq(
-        api_key=settings.groq_api_key,
-        model=settings.groq_model,
-        temperature=0.5,
-        max_tokens=800,
-    )
+    llm, provider = get_llm(temperature=0.5, max_tokens=800)
 
     bloom_names = {1: "Remember", 2: "Understand", 3: "Apply", 4: "Analyze", 5: "Evaluate", 6: "Create"}
     bloom_name = bloom_names.get(bloom_level, "Understand")

@@ -16,7 +16,7 @@ async def get_predictions(student_id: str):
     Phase 2: markdown narrative (conversational tutor-style explanation)
     Falls back to Groq if NVIDIA NIM is unavailable.
     """
-    from agents.prediction import compute_predicted_cgpa, run_bedrock_analysis, build_prediction_fallback
+    from prediction import compute_predicted_cgpa, run_deep_analysis, build_prediction_fallback
 
     profile = await get_student_profile(student_id)
 
@@ -40,9 +40,9 @@ async def get_predictions(student_id: str):
         }
     subjects = profile.get("subjects") or []
 
-    # 2-phase Bedrock deep analysis (async)
+    # 2-phase AI Mentor deep analysis (async)
     try:
-        analysis = await run_bedrock_analysis(profile, learning_dna)
+        analysis = await run_deep_analysis(profile, learning_dna)
     except Exception as e:
         logger.warning(f"Prediction analysis failed for {student_id}: {e}")
         analysis = build_prediction_fallback(profile)
@@ -80,7 +80,7 @@ async def get_predictions(student_id: str):
         "predicted_cgpa":      numeric["cgpa"],
         "cgpa_range":          numeric["range"],
         "confidence":          numeric.get("confidence", 0.7),
-        # Bedrock supplemented verdict
+        # AI-supplemented verdict
         "cgpa_verdict":        cgpa_verdict,
         "trajectory_signal":   analysis.get("trajectory_signal", "stable"),
         "trajectory_reason":   analysis.get("trajectory_reason", ""),
@@ -90,7 +90,7 @@ async def get_predictions(student_id: str):
         "arrear_risk":         analysis.get("arrear_risk", []),
         "risk_subject_count":  len(risk_subjects),
         "watch_subject_count": len(watch_subjects),
-        # Bedrock actionable intelligence
+        # AI-driven actionable intelligence
         "critical_moves":      analysis.get("critical_moves", []),
         "study_dna_impact":    analysis.get("study_dna_impact", ""),
         # LLM-generated markdown narrative
@@ -103,7 +103,7 @@ async def get_predictions(student_id: str):
 @router.get("/student/{student_id}/schedule")
 async def get_schedule(student_id: str):
     """AI-generated personalized study schedule using Groq LLM + real ERP data."""
-    from agents.schedule import (
+    from schedule import (
         generate_ai_schedule, generate_subject_tips,
         build_schedule_rationale, build_subject_breakdown
     )
@@ -181,7 +181,7 @@ async def get_schedule(student_id: str):
 @router.get("/student/{student_id}/career")
 async def get_career(student_id: str):
     """Generate full career intelligence report for the student."""
-    from agents.career import generate_career_report
+    from career import generate_career_report
     profile = await get_student_profile(student_id)
     return generate_career_report(profile)
 
@@ -618,10 +618,10 @@ async def get_mastery(student_id: str):
 @router.post("/student/{student_id}/simulate")
 async def simulate_scenario(student_id: str, body: dict):
     """
-    Scenario simulator — numeric CGPA delta + Bedrock explanation of the change.
+    Scenario simulator — numeric CGPA delta + AI Mentor explanation of the change.
     Body: { attendance_delta, assignment_delta, study_hours_delta }
     """
-    from agents.prediction import compute_predicted_cgpa, run_sim_explanation
+    from agents.prediction import compute_predicted_cgpa, run_sim_explanation_llm
     import copy
 
     profile = await get_student_profile(student_id)
@@ -631,7 +631,7 @@ async def simulate_scenario(student_id: str, body: dict):
         "assignment_delta":  float(body.get("assignment_delta", 0)),
         "study_hours_delta": float(body.get("study_hours_delta", 0)),
     }
-    add_explanation = body.get("explain", False)  # frontend requests Bedrock explanation
+    add_explanation = body.get("explain", False)  # frontend requests AI explanation
 
     baseline_profile = copy.deepcopy(profile)
     baseline = compute_predicted_cgpa(baseline_profile)
@@ -655,7 +655,7 @@ async def simulate_scenario(student_id: str, body: dict):
     # LLM explanation (async, optional)
     explanation = ""
     if add_explanation:
-        explanation = await run_sim_explanation(
+        explanation = await run_sim_explanation_llm(
             profile, improvement, baseline["cgpa"], sim["cgpa"]
         )
 
@@ -679,7 +679,7 @@ async def get_skill_gap(student_id: str, domain: str = None):
     Query param: domain (optional, auto-detected from career profile if not given)
     """
     from skill_gap import analyze_skill_gap
-    from agents.career import compute_career_profile
+    from career import compute_career_profile
     from db import get_pool
 
     student = await db.get_student_by_college_id(student_id)
